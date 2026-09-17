@@ -3,329 +3,609 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Near-Ultrasound Messenger</title>
+    <title>Sonic Nexus - Ultrasound Data Transceiver</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #0f172a; /* Slate 900 */
-            color: #e2e8f0; /* Slate 200 */
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #090d16;
+            color: #f1f5f9;
         }
-        
-        /* Custom scrollbar for message areas */
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
         ::-webkit-scrollbar {
-            width: 8px;
+            width: 6px;
+            height: 6px;
         }
         ::-webkit-scrollbar-track {
-            background: #1e293b; 
-            border-radius: 4px;
+            background: #0f172a;
         }
         ::-webkit-scrollbar-thumb {
-            background: #475569; 
-            border-radius: 4px;
+            background: #334155;
+            border-radius: 3px;
         }
         ::-webkit-scrollbar-thumb:hover {
-            background: #64748b; 
+            background: #475569;
         }
-
-        .pulse-ring {
-            animation: pulsate 2s infinite ease-out;
+        .glow-blue {
+            box-shadow: 0 0 25px -5px rgba(59, 130, 246, 0.4);
         }
-
-        @keyframes pulsate {
-            0% {
-                transform: scale(0.95);
-                box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
-            }
-            
-            70% {
-                transform: scale(1);
-                box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
-            }
-            
-            100% {
-                transform: scale(0.95);
-                box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
-            }
+        .glow-emerald {
+            box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.4);
         }
-        
-        .listening-active {
-            color: #10b981; /* Emerald 500 */
-            text-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+        .glow-purple {
+            box-shadow: 0 0 25px -5px rgba(168, 85, 247, 0.4);
+        }
+        .waterfall-canvas {
+            image-rendering: pixelated;
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-center p-4 selection:bg-blue-500 selection:text-white">
+<body class="min-h-screen flex flex-col justify-between p-3 md:p-6 selection:bg-cyan-500 selection:text-black">
 
-    <div class="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-8">
+    <div class="max-w-7xl mx-auto w-full flex flex-col gap-6">
         
-        <!-- Header spanning full width -->
-        <div class="col-span-1 md:col-span-2 text-center mb-4">
-            <h1 class="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 mb-2">Sonic Messenger</h1>
-            <p class="text-slate-400 text-sm max-w-2xl mx-auto">
-                Transmit data using near-ultrasonic frequencies. <br/>
-                <span class="text-blue-300">0 = 18.5kHz</span> | <span class="text-emerald-300">1 = 19.5kHz</span>
-            </p>
-            <div id="statusMessage" class="mt-4 text-sm font-semibold h-6 text-yellow-400"></div>
-        </div>
-
-        <!-- Sender Section -->
-        <div class="bg-slate-800 rounded-2xl p-6 shadow-xl border border-slate-700 flex flex-col h-[500px]">
-            <h2 class="text-2xl font-semibold mb-4 text-blue-400 flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                </svg>
-                Transmitter
-            </h2>
-            
-            <div class="flex-grow flex flex-col gap-4">
-                <div class="flex-grow">
-                    <label for="messageInput" class="block text-sm font-medium text-slate-400 mb-1">Message to Send</label>
-                    <textarea id="messageInput" 
-                              class="w-full h-full resize-none bg-slate-900 border border-slate-600 rounded-lg p-3 text-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                              placeholder="Type a message here... (Keep it short, e.g., 'Hi')"></textarea>
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center bg-slate-900/80 backdrop-blur-md p-4 md:p-6 rounded-2xl border border-slate-800 shadow-2xl gap-4">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-slate-950 font-black text-2xl shadow-lg glow-blue">
+                    ⚡
                 </div>
-                
-                <div class="bg-slate-900 rounded-lg p-3 border border-slate-700 h-24 overflow-y-auto font-mono text-xs text-slate-500">
-                    <div class="mb-1 text-slate-400 font-semibold">Binary Encoding:</div>
-                    <div id="binaryOutput" class="break-words">...</div>
+                <div>
+                    <h1 class="text-2xl md:text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-300">
+                        SONIC NEXUS
+                    </h1>
+                    <p class="text-xs md:text-sm text-slate-400">High-Precision Acoustic Data Transceiver (FSK over Near-Ultrasound)</p>
                 </div>
             </div>
 
-            <button id="sendBtn" 
-                    class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors flex justify-center items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed">
-                <span>Send via Audio</span>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transform group-hover:translate-x-1 transition-transform" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
-                </svg>
-            </button>
-            <div class="w-full bg-slate-700 rounded-full h-1.5 mt-4 overflow-hidden">
-                <div id="sendProgress" class="bg-blue-500 h-1.5 rounded-full w-0 transition-all duration-75"></div>
-            </div>
-        </div>
-
-        <!-- Receiver Section -->
-        <div class="bg-slate-800 rounded-2xl p-6 shadow-xl border border-slate-700 flex flex-col h-[500px]">
-            <h2 class="text-2xl font-semibold mb-4 text-emerald-400 flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                    </svg>
-                    Receiver
+            <!-- Global Status Badges -->
+            <div class="flex flex-wrap items-center gap-3 text-xs font-mono">
+                <div class="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg flex items-center gap-2">
+                    <span class="text-slate-400">Audio Context:</span>
+                    <span id="audioContextStatus" class="text-amber-400 font-bold">STANDBY</span>
                 </div>
-                <div id="listeningIndicator" class="text-sm font-normal text-slate-500 opacity-0 transition-opacity flex items-center gap-2">
-                    <span class="relative flex h-3 w-3">
-                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-                    </span>
-                    Listening
-                </div>
-            </h2>
-            
-            <div class="flex-grow flex flex-col gap-4">
-                 <div class="bg-slate-900 rounded-lg p-3 border border-slate-700 h-24 overflow-y-auto font-mono text-xs text-slate-500">
-                    <div class="mb-1 text-slate-400 font-semibold flex justify-between">
-                        <span>Raw Binary Detected:</span>
-                        <span id="currentFreq" class="text-emerald-400">-- Hz</span>
-                    </div>
-                    <div id="receivedBinary" class="break-words"></div>
-                </div>
-
-                <div class="flex-grow flex flex-col">
-                    <label class="block text-sm font-medium text-slate-400 mb-1">Decoded Message</label>
-                    <div id="receivedText" 
-                         class="w-full flex-grow bg-slate-900 border border-slate-600 rounded-lg p-3 text-emerald-300 font-semibold overflow-y-auto whitespace-pre-wrap">Waiting for signal...</div>
+                <div class="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg flex items-center gap-2">
+                    <span class="text-slate-400">Sample Rate:</span>
+                    <span id="sampleRateVal" class="text-cyan-400 font-bold">-- Hz</span>
                 </div>
             </div>
+        </header>
 
-            <button id="listenBtn" 
-                    class="mt-4 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-lg transition-colors flex justify-center items-center gap-2 group">
-                <span id="listenBtnText">Start Listening</span>
-            </button>
-            
-            <!-- Audio Visualizer Canvas -->
-            <div class="w-full h-12 mt-4 bg-slate-900 rounded-lg overflow-hidden border border-slate-700">
-                <canvas id="visualizer" class="w-full h-full"></canvas>
-            </div>
-        </div>
-        
-         <!-- Settings/Info -->
-         <div class="col-span-1 md:col-span-2 bg-slate-800 rounded-xl p-4 border border-slate-700 text-xs text-slate-400 flex flex-wrap gap-4 justify-between items-center">
+        <!-- Configuration & Diagnostics Bar -->
+        <section class="bg-slate-900/60 rounded-xl border border-slate-800/80 p-4 grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
             <div>
-                <strong>Configuration:</strong><br>
-                Freq 0: 18,500 Hz | Freq 1: 19,500 Hz <br>
-                Baud Rate: ~5 bits/sec (Slow for reliability in JS)
+                <label class="block text-slate-400 font-medium mb-1.5">Frequency Preset Profile</label>
+                <select id="freqProfileSelect" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-cyan-300 font-semibold focus:ring-2 focus:ring-cyan-500 outline-none">
+                    <option value="ultrasonic">Ultrasonic Band (18.5 kHz / 19.5 kHz)</option>
+                    <option value="near_ultrasonic">Near-Ultrasonic (16.5 kHz / 17.5 kHz)</option>
+                    <option value="audible_high">Audible Debug (12.0 kHz / 13.0 kHz)</option>
+                    <option value="custom">Custom Frequency Pair</option>
+                </select>
             </div>
-            <div class="text-right max-w-sm">
-                <strong>Note:</strong> Turn volume up on Sender. Ensure Receiver microphone is permitted. Extremely high frequencies may not be reproduced well by cheap speakers or captured by cheap mics.
+
+            <div id="customFreqInputs" class="hidden col-span-1 md:col-span-1 grid grid-cols-2 gap-2">
+                <div>
+                    <label class="block text-slate-400 mb-1">Bit 0 Freq (Hz)</label>
+                    <input type="number" id="customFreq0" value="18500" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200">
+                </div>
+                <div>
+                    <label class="block text-slate-400 mb-1">Bit 1 Freq (Hz)</label>
+                    <input type="number" id="customFreq1" value="19500" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200">
+                </div>
             </div>
-        </div>
+
+            <div>
+                <label class="block text-slate-400 font-medium mb-1.5">Baud Rate (Symbol Time)</label>
+                <select id="baudRateSelect" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-indigo-300 font-semibold focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <option value="100">Fast (100ms / bit) ~10 bps</option>
+                    <option value="150">Balanced (150ms / bit) ~6.6 bps</option>
+                    <option value="200" selected>Reliable (200ms / bit) ~5 bps</option>
+                    <option value="300">Robust (300ms / bit) ~3.3 bps</option>
+                </select>
+            </div>
+
+            <div class="flex items-end gap-2">
+                <button id="speakerTestBtn" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-medium py-2 px-3 rounded-lg transition flex items-center justify-center gap-2">
+                    <span>🔊 Test Speaker Frequencies</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Main Transceiver Workspace -->
+        <main class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            <!-- TRANSMITTER PANEL -->
+            <div class="bg-slate-900/90 rounded-2xl border border-slate-800 p-5 md:p-6 shadow-xl flex flex-col justify-between h-[680px] glow-blue relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-8 opacity-5 text-blue-500 text-9xl font-black pointer-events-none select-none">
+                    TX
+                </div>
+
+                <div>
+                    <!-- Panel Title -->
+                    <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-blue-500 animate-pulse"></span>
+                            <h2 class="text-xl font-bold text-blue-400 tracking-wide">ACOUSTIC TRANSMITTER</h2>
+                        </div>
+                        <span id="txModeBadge" class="text-xs font-mono bg-blue-950 text-blue-300 border border-blue-800 px-2.5 py-1 rounded-full">FSK Ready</span>
+                    </div>
+
+                    <!-- Input Box -->
+                    <div class="mb-4">
+                        <div class="flex justify-between text-xs text-slate-400 mb-1.5">
+                            <label for="txInput">Message Payload</label>
+                            <span id="charCounter">0 / 40 chars</span>
+                        </div>
+                        <textarea id="txInput" rows="3" maxlength="40"
+                            class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-slate-100 font-mono focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none resize-none transition"
+                            placeholder="Type a short message (e.g. Hello Sonic!)..."></textarea>
+                    </div>
+
+                    <!-- Packet Encoding Diagnostics -->
+                    <div class="space-y-3 font-mono text-xs">
+                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3">
+                            <div class="text-slate-400 font-sans text-[11px] mb-1 flex justify-between">
+                                <span>PACKET FRAME BREAKDOWN</span>
+                                <span class="text-cyan-400">Preamble + Len + Payload + CRC8</span>
+                            </div>
+                            <div id="packetHexDisplay" class="text-cyan-300 break-all min-h-[18px]">-- -- -- --</div>
+                        </div>
+
+                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3">
+                            <div class="text-slate-400 font-sans text-[11px] mb-1">BINARY STREAM (PHYSICAL LAYER)</div>
+                            <div id="binaryStreamDisplay" class="text-slate-500 break-all max-h-20 overflow-y-auto min-h-[36px]">Waiting for input...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transmitter Oscilloscope & Control -->
+                <div class="mt-4 space-y-3">
+                    <div class="h-16 bg-slate-950 rounded-xl border border-slate-800 overflow-hidden relative">
+                        <canvas id="txCanvas" class="w-full h-full"></canvas>
+                        <div id="txFrequencyIndicator" class="absolute bottom-1 right-2 text-[10px] font-mono text-blue-400">0.0 kHz</div>
+                    </div>
+
+                    <button id="transmitBtn" class="w-full py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl transition shadow-lg flex items-center justify-center gap-2 group text-sm">
+                        <span>📡 BROADCAST VIA SOUND</span>
+                    </button>
+
+                    <!-- Progress Bar -->
+                    <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
+                        <div id="txProgressBar" class="bg-gradient-to-r from-cyan-400 to-blue-500 h-full w-0 transition-all duration-75"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RECEIVER PANEL -->
+            <div class="bg-slate-900/90 rounded-2xl border border-slate-800 p-5 md:p-6 shadow-xl flex flex-col justify-between h-[680px] glow-emerald relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-8 opacity-5 text-emerald-500 text-9xl font-black pointer-events-none select-none">
+                    RX
+                </div>
+
+                <div>
+                    <!-- Panel Title -->
+                    <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
+                        <div class="flex items-center gap-2">
+                            <span id="rxLed" class="w-3 h-3 rounded-full bg-slate-600"></span>
+                            <h2 class="text-xl font-bold text-emerald-400 tracking-wide">ACOUSTIC RECEIVER</h2>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span id="snrBadge" class="text-xs font-mono bg-slate-950 text-emerald-400 border border-slate-800 px-2.5 py-1 rounded-full">SNR: -- dB</span>
+                        </div>
+                    </div>
+
+                    <!-- Spectrogram Waterfall Display -->
+                    <div class="mb-3">
+                        <div class="flex justify-between text-xs text-slate-400 mb-1 font-mono">
+                            <span>SPECTROGRAM WATERFALL (15 - 21 kHz)</span>
+                            <span id="detectedFreqVal" class="text-emerald-400 font-bold">-- Hz</span>
+                        </div>
+                        <div class="h-32 bg-slate-950 rounded-xl border border-slate-800 overflow-hidden relative">
+                            <canvas id="spectrogramCanvas" class="w-full h-full waterfall-canvas"></canvas>
+                            <!-- Frequency Markers overlays -->
+                            <div class="absolute inset-x-0 bottom-0 top-0 pointer-events-none border-b border-slate-800 flex justify-between px-2 text-[9px] text-slate-500 font-mono items-end pb-0.5">
+                                <span>15kHz</span>
+                                <span class="text-cyan-500 font-bold">F0</span>
+                                <span class="text-emerald-500 font-bold">F1</span>
+                                <span>21kHz</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Spectrum Power Density Graph -->
+                    <div class="mb-3">
+                        <div class="h-14 bg-slate-950 rounded-xl border border-slate-800 overflow-hidden">
+                            <canvas id="spectrumCanvas" class="w-full h-full"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Decoded Result Box -->
+                    <div class="space-y-2 font-mono text-xs">
+                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3">
+                            <div class="text-slate-400 font-sans text-[11px] mb-1 flex justify-between items-center">
+                                <span>RECEIVED DATA STREAM</span>
+                                <span id="crcBadge" class="hidden text-[10px] px-2 py-0.5 rounded font-bold bg-emerald-950 text-emerald-400 border border-emerald-800">
+                                    CRC-8 OK
+                                </span>
+                            </div>
+                            <div id="rxBitBuffer" class="text-emerald-500 break-all min-h-[18px] text-[11px]">Idle...</div>
+                        </div>
+
+                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3">
+                            <div class="text-slate-400 font-sans text-[11px] mb-1">DECODED MESSAGE</div>
+                            <div id="rxOutputText" class="text-emerald-300 font-sans font-bold text-base min-h-[32px] break-words flex items-center">
+                                Waiting for audio transmission...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Receiver Controls -->
+                <div class="mt-4 flex gap-3">
+                    <button id="rxToggleBtn" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black rounded-xl transition shadow-lg flex items-center justify-center gap-2 text-sm">
+                        <span>🎙️ START LISTENING</span>
+                    </button>
+                    <button id="calibrateNoiseBtn" class="px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-xs border border-slate-700 transition">
+                        Calibrate
+                    </button>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Technical Footer -->
+        <footer class="bg-slate-900/60 rounded-xl border border-slate-800 p-4 text-xs text-slate-400 flex flex-col md:flex-row justify-between items-center gap-3">
+            <div class="flex items-center gap-3">
+                <span class="text-cyan-400 font-bold">Technical Specs:</span>
+                <span>Modulation: Binary FSK</span>
+                <span>•</span>
+                <span>Framing: Custom Sync + Payload + CRC8</span>
+                <span>•</span>
+                <span>DSP: FFT Window Integration</span>
+            </div>
+            <div id="statusBanner" class="text-amber-400 font-semibold font-mono">
+                System Ready. Place devices within range (0 - 3 meters).
+            </div>
+        </footer>
 
     </div>
 
     <script>
-        // --- System Constants ---
-        const FREQ_0 = 18500; // 18.5 kHz
-        const FREQ_1 = 19500; // 19.5 kHz
-        const START_BIT_FREQ = 17500; // Frequency to indicate start of a transmission
-        
-        const BIT_DURATION_MS = 200; // How long to play each tone. Slower is more reliable in JS.
-        const FREQ_TOLERANCE = 150;  // Hz tolerance for detecting frequency
+        // =========================================================================
+        // SONIC NEXUS - Acoustic FSK Data Transceiver & Signal Processing Engine
+        // =========================================================================
 
-        // --- Shared Audio Context ---
-        let audioCtx;
-        
-        // --- Sender State ---
-        let isSending = false;
-        const messageInput = document.getElementById('messageInput');
-        const binaryOutput = document.getElementById('binaryOutput');
-        const sendBtn = document.getElementById('sendBtn');
-        const sendProgress = document.getElementById('sendProgress');
+        // --- System Frequencies & Configurations ---
+        const PROFILES = {
+            ultrasonic:      { f0: 18500, f1: 19500, sync: 17500 },
+            near_ultrasonic: { f0: 16500, f1: 17500, sync: 15500 },
+            audible_high:    { f0: 12000, f1: 13000, sync: 11000 }
+        };
 
-        // --- Receiver State ---
+        let activeProfile = { ...PROFILES.ultrasonic };
+        let symbolDurationMs = 200; // ms per bit
+
+        // --- Global Web Audio States ---
+        let audioCtx = null;
+        let rxAnalyser = null;
+        let rxMicStream = null;
+        let rxSourceNode = null;
         let isListening = false;
-        let analyzer;
-        let microphone;
-        let receiverAnimFrame;
-        let currentReceivedBinary = "";
-        let isReceivingMessage = false;
-        
-        const receivedBinaryEl = document.getElementById('receivedBinary');
-        const receivedTextEl = document.getElementById('receivedText');
-        const listenBtn = document.getElementById('listenBtn');
-        const listenBtnText = document.getElementById('listenBtnText');
-        const currentFreqEl = document.getElementById('currentFreq');
-        const listeningIndicator = document.getElementById('listeningIndicator');
-        const statusMessage = document.getElementById('statusMessage');
-        const canvas = document.getElementById('visualizer');
-        const canvasCtx = canvas.getContext('2d');
+        let isTransmitting = false;
 
-        // Initialize AudioContext on first user interaction
-        function initAudio() {
+        // --- Receiver DSP & Demodulation Variables ---
+        let rxAnimFrame = null;
+        let noiseFloorDb = -80;
+        let rxBitBufferString = "";
+        let rxState = "IDLE"; // IDLE, SYNCED, RECEIVING
+        let lastSymbolTime = 0;
+        let currentSymbolSamples = [];
+        let preambleDetectCount = 0;
+        let expectedBytesCount = 0;
+
+        // --- DOM Elements ---
+        const audioContextStatus = document.getElementById('audioContextStatus');
+        const sampleRateVal = document.getElementById('sampleRateVal');
+        const statusBanner = document.getElementById('statusBanner');
+        
+        // Settings
+        const freqProfileSelect = document.getElementById('freqProfileSelect');
+        const customFreqInputs = document.getElementById('customFreqInputs');
+        const customFreq0 = document.getElementById('customFreq0');
+        const customFreq1 = document.getElementById('customFreq1');
+        const baudRateSelect = document.getElementById('baudRateSelect');
+        const speakerTestBtn = document.getElementById('speakerTestBtn');
+
+        // Transmitter DOM
+        const txInput = document.getElementById('txInput');
+        const charCounter = document.getElementById('charCounter');
+        const packetHexDisplay = document.getElementById('packetHexDisplay');
+        const binaryStreamDisplay = document.getElementById('binaryStreamDisplay');
+        const transmitBtn = document.getElementById('transmitBtn');
+        const txProgressBar = document.getElementById('txProgressBar');
+        const txCanvas = document.getElementById('txCanvas');
+        const txFrequencyIndicator = document.getElementById('txFrequencyIndicator');
+        const txCtx = txCanvas.getContext('2d');
+
+        // Receiver DOM
+        const rxToggleBtn = document.getElementById('rxToggleBtn');
+        const rxLed = document.getElementById('rxLed');
+        const snrBadge = document.getElementById('snrBadge');
+        const detectedFreqVal = document.getElementById('detectedFreqVal');
+        const rxBitBuffer = document.getElementById('rxBitBuffer');
+        const rxOutputText = document.getElementById('rxOutputText');
+        const crcBadge = document.getElementById('crcBadge');
+        const calibrateNoiseBtn = document.getElementById('calibrateNoiseBtn');
+
+        // Canvases
+        const spectrogramCanvas = document.getElementById('spectrogramCanvas');
+        const spectrogramCtx = spectrogramCanvas.getContext('2d');
+        const spectrumCanvas = document.getElementById('spectrumCanvas');
+        const spectrumCtx = spectrumCanvas.getContext('2d');
+
+
+        // Ensure Audio Context is active on user click
+        function getAudioContext() {
             if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioCtxClass();
+                sampleRateVal.textContent = `${audioCtx.sampleRate} Hz`;
             }
             if (audioCtx.state === 'suspended') {
                 audioCtx.resume();
             }
+            audioContextStatus.textContent = audioCtx.state.toUpperCase();
+            audioContextStatus.className = audioCtx.state === 'running' ? 'text-emerald-400 font-bold' : 'text-amber-400 font-bold';
+            return audioCtx;
         }
 
-        function showStatus(msg, type='info') {
-            statusMessage.textContent = msg;
-            statusMessage.className = `mt-4 text-sm font-semibold h-6 ${type === 'error' ? 'text-red-400' : 'text-yellow-400'}`;
-            setTimeout(() => { if(statusMessage.textContent === msg) statusMessage.textContent = ''; }, 3000);
+        function setStatus(msg, isError = false) {
+            statusBanner.textContent = msg;
+            statusBanner.className = isError 
+                ? 'text-red-400 font-semibold font-mono animate-pulse' 
+                : 'text-amber-400 font-semibold font-mono';
         }
 
-        // --- STREAMING_CHUNK:Sender Logic ---
-
-        // Helper: String to Binary (8-bit ASCII)
-        function textToBinary(text) {
-            return text.split('').map(char => {
-                return char.charCodeAt(0).toString(2).padStart(8, '0');
-            }).join('');
-        }
-
-        // Helper: Play a specific frequency for a duration
-        function playTone(frequency, duration) {
-            return new Promise(resolve => {
-                const oscillator = audioCtx.createOscillator();
-                const gainNode = audioCtx.createGain();
-
-                oscillator.type = 'sine';
-                oscillator.frequency.value = frequency;
-
-                // Envelope to prevent clicking sounds at start/end of tones
-                gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-                gainNode.gain.linearRampToValueAtTime(1, audioCtx.currentTime + 0.02);
-                gainNode.gain.setValueAtTime(1, audioCtx.currentTime + (duration/1000) - 0.02);
-                gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + (duration/1000));
-
-                oscillator.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
-
-                oscillator.start();
-                
-                setTimeout(() => {
-                    oscillator.stop();
-                    resolve();
-                }, duration);
-            });
-        }
-
-        // Update binary output as user types
-        messageInput.addEventListener('input', () => {
-            if(messageInput.value) {
-                 binaryOutput.textContent = textToBinary(messageInput.value);
-            } else {
-                 binaryOutput.textContent = '...';
+        // --- CRC-8 Checksum Algorithm (Polynomial 0x07) ---
+        function calculateCRC8(dataArray) {
+            let crc = 0x00;
+            for (let i = 0; i < dataArray.length; i++) {
+                crc ^= dataArray[i];
+                for (let j = 0; j < 8; j++) {
+                    if (crc & 0x80) {
+                        crc = ((crc << 1) ^ 0x07) & 0xFF;
+                    } else {
+                        crc = (crc << 1) & 0xFF;
+                    }
+                }
             }
+            return crc;
+        }
+
+
+        // Frequency Settings Handlers
+        freqProfileSelect.addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'custom') {
+                customFreqInputs.classList.remove('hidden');
+                activeProfile = {
+                    f0: parseInt(customFreq0.value) || 18500,
+                    f1: parseInt(customFreq1.value) || 19500,
+                    sync: (parseInt(customFreq0.value) || 18500) - 1000
+                };
+            } else {
+                customFreqInputs.classList.add('hidden');
+                activeProfile = { ...PROFILES[val] };
+            }
+            updatePacketPreview();
         });
 
-        // Main Send Function
-        sendBtn.addEventListener('click', async () => {
-            const text = messageInput.value.trim();
+        [customFreq0, customFreq1].forEach(input => {
+            input.addEventListener('input', () => {
+                activeProfile.f0 = parseInt(customFreq0.value) || 18500;
+                activeProfile.f1 = parseInt(customFreq1.value) || 19500;
+                activeProfile.sync = activeProfile.f0 - 1000;
+                updatePacketPreview();
+            });
+        });
+
+        baudRateSelect.addEventListener('change', (e) => {
+            symbolDurationMs = parseInt(e.target.value);
+        });
+
+
+        // Build binary packet structure: [Preamble Sync] + [Length Byte] + [Data Bytes] + [CRC8 Byte]
+        function buildPacket(text) {
+            const encoder = new TextEncoder();
+            const payloadBytes = encoder.encode(text);
+            const len = payloadBytes.length;
+
+            // Packet bytes = [len, ...payloadBytes]
+            const rawBuffer = new Uint8Array(1 + len);
+            rawBuffer[0] = len;
+            rawBuffer.set(payloadBytes, 1);
+
+            // Compute CRC8 over [len + payload]
+            const crc = calculateCRC8(rawBuffer);
+
+            // Complete packet array
+            const fullPacket = new Uint8Array(1 + len + 1);
+            fullPacket.set(rawBuffer, 0);
+            fullPacket[1 + len] = crc;
+
+            return {
+                bytes: fullPacket,
+                payloadLen: len,
+                crc: crc
+            };
+        }
+
+        // Convert packet bytes to full bit stream (with preamble sync headers)
+        function packetToBits(packet) {
+            let bitString = "";
+            
+            // Sync Header: 8 bits of alternating 1/0 + preamble sync tone
+            for (let i = 0; i < packet.bytes.length; i++) {
+                const byte = packet.bytes[i];
+                bitString += byte.toString(2).padStart(8, '0');
+            }
+            return bitString;
+        }
+
+        // Update TX UI whenever user types
+        txInput.addEventListener('input', () => {
+            charCounter.textContent = `${txInput.value.length} / 40 chars`;
+            updatePacketPreview();
+        });
+
+        function updatePacketPreview() {
+            const text = txInput.value;
             if (!text) {
-                showStatus("Please enter a message to send.", "error");
+                packetHexDisplay.textContent = "-- -- -- --";
+                binaryStreamDisplay.textContent = "Waiting for input...";
                 return;
             }
 
-            initAudio();
-            isSending = true;
-            sendBtn.disabled = true;
-            
-            const binaryString = textToBinary(text);
-            const totalBits = binaryString.length;
-            
-            showStatus(`Transmitting ${totalBits} bits...`);
+            const packet = buildPacket(text);
+            const hexArr = Array.from(packet.bytes).map(b => b.toString(16).padStart(2, '0').toUpperCase());
+            packetHexDisplay.textContent = hexArr.join(' ');
 
-            // 1. Play Start Bit (Sync signal)
-            await playTone(START_BIT_FREQ, BIT_DURATION_MS * 2); 
-            // Pause slightly after start bit
-            await new Promise(r => setTimeout(r, BIT_DURATION_MS));
+            const bits = packetToBits(packet);
+            binaryStreamDisplay.textContent = bits;
+        }
 
-            // 2. Transmit Data
-            for (let i = 0; i < binaryString.length; i++) {
-                if (!isSending) break; // Allow manual abort if needed (not implemented in UI but good practice)
-                
-                const bit = binaryString[i];
-                const freq = (bit === '0') ? FREQ_0 : FREQ_1;
-                
-                // Update UI Progress
-                const progress = ((i + 1) / totalBits) * 100;
-                sendProgress.style.width = `${progress}%`;
-                
-                await playTone(freq, BIT_DURATION_MS);
-                
-                // Small gap between bits to help receiver distinguish them
-                await new Promise(r => setTimeout(r, 50)); 
+
+        // Play smooth tone with cosine ramping to eliminate clicking noise
+        function playTone(ctx, freq, durationMs) {
+            return new Promise((resolve) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, ctx.currentTime);
+
+                const durSec = durationMs / 1000;
+                const attack = Math.min(0.015, durSec * 0.2); // 15ms soft fade-in
+                const release = Math.min(0.015, durSec * 0.2); // 15ms soft fade-out
+
+                // Envelope
+                gain.gain.setValueAtTime(0, ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.8, ctx.currentTime + attack);
+                gain.gain.setValueAtTime(0.8, ctx.currentTime + durSec - release);
+                gain.gain.linearRampToValueAtTime(0, ctx.currentTime + durSec);
+
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                osc.start();
+
+                // Draw tx oscilloscope wave
+                drawTxWave(freq);
+
+                setTimeout(() => {
+                    osc.stop();
+                    osc.disconnect();
+                    gain.disconnect();
+                    resolve();
+                }, durationMs);
+            });
+        }
+
+        // Visualizer for TX wave
+        function drawTxWave(freq) {
+            txFrequencyIndicator.textContent = `${(freq / 1000).toFixed(1)} kHz`;
+            txCtx.fillStyle = '#020617';
+            txCtx.fillRect(0, 0, txCanvas.width, txCanvas.height);
+
+            txCtx.beginPath();
+            txCtx.strokeStyle = '#3b82f6';
+            txCtx.lineWidth = 2;
+
+            const width = txCanvas.width;
+            const height = txCanvas.height;
+            const cycles = freq / 1000; // visual representation cycles
+
+            for (let x = 0; x < width; x++) {
+                const y = height / 2 + Math.sin((x / width) * cycles * Math.PI * 2) * (height / 2.5);
+                if (x === 0) txCtx.moveTo(x, y);
+                else txCtx.lineTo(x, y);
             }
+            txCtx.stroke();
+        }
 
-            // Reset UI
-            isSending = false;
-            sendBtn.disabled = false;
-            sendProgress.style.width = `0%`;
-            showStatus("Transmission complete.", "info");
+        // Speaker test generator
+        speakerTestBtn.addEventListener('click', async () => {
+            const ctx = getAudioContext();
+            setStatus("Playing speaker frequency diagnostic test...");
+            speakerTestBtn.disabled = true;
+
+            // Play sequence: 1kHz -> Sync Freq -> Bit 0 Freq -> Bit 1 Freq
+            await playTone(ctx, 1000, 300);
+            await playTone(ctx, activeProfile.sync, 400);
+            await playTone(ctx, activeProfile.f0, 500);
+            await playTone(ctx, activeProfile.f1, 500);
+
+            setStatus("Speaker diagnostic complete. Did you hear the low start chirp?");
+            speakerTestBtn.disabled = false;
         });
 
 
-        // --- STREAMING_CHUNK:Receiver Logic ---
-
-        // Helper: Binary to String
-        function binaryToText(binary) {
-            let text = '';
-            // Process in chunks of 8 bits
-            for (let i = 0; i < binary.length; i += 8) {
-                const byte = binary.substr(i, 8);
-                if (byte.length === 8) {
-                    text += String.fromCharCode(parseInt(byte, 2));
-                }
+        // Main Broadcast Function
+        transmitBtn.addEventListener('click', async () => {
+            const text = txInput.value.trim();
+            if (!text) {
+                setStatus("Please enter a message before broadcasting.", true);
+                return;
             }
-            return text;
-        }
 
-        // Main Listen Toggle Function
-        listenBtn.addEventListener('click', async () => {
+            const ctx = getAudioContext();
+            isTransmitting = true;
+            transmitBtn.disabled = true;
+            txInput.disabled = true;
+
+            const packet = buildPacket(text);
+            const bitString = packetToBits(packet);
+            const totalBits = bitString.length;
+
+            setStatus(`Broadcasting payload: ${totalBits} bits via Acoustic FSK...`);
+
+            // Step 1: Send High-Power Preamble / Sync Chirp
+            // Sync tone played for 2 symbol lengths to wake up receiver & lock clock
+            await playTone(ctx, activeProfile.sync, symbolDurationMs * 2);
+            await new Promise(r => setTimeout(r, 40)); // tiny gap
+
+            // Step 2: Loop through binary stream
+            for (let i = 0; i < totalBits; i++) {
+                if (!isTransmitting) break;
+
+                const bit = bitString[i];
+                const freq = (bit === '1') ? activeProfile.f1 : activeProfile.f0;
+
+                // Update UI progress
+                const pct = ((i + 1) / totalBits) * 100;
+                txProgressBar.style.width = `${pct}%`;
+
+                await playTone(ctx, freq, symbolDurationMs);
+            }
+
+            // Clear TX display
+            txCtx.fillStyle = '#020617';
+            txCtx.fillRect(0, 0, txCanvas.width, txCanvas.height);
+            txFrequencyIndicator.textContent = '0.0 kHz';
+
+            setStatus("Transmission complete!");
+            isTransmitting = false;
+            transmitBtn.disabled = false;
+            txInput.disabled = false;
+            txProgressBar.style.width = '0%';
+        });
+
+
+        // Receiver Toggle
+        rxToggleBtn.addEventListener('click', () => {
             if (isListening) {
                 stopListening();
             } else {
@@ -334,263 +614,373 @@
         });
 
         async function startListening() {
-            initAudio();
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    audio: { 
-                        echoCancellation: false, 
-                        noiseSuppression: false, 
-                        autoGainControl: false // Disable processing that might filter high frequencies
-                    } 
-                });
-                
-                microphone = audioCtx.createMediaStreamSource(stream);
-                analyzer = audioCtx.createAnalyser();
-                
-                // High FFT size for better frequency resolution
-                analyzer.fftSize = 4096; 
-                
-                microphone.connect(analyzer);
-                
-                isListening = true;
-                listenBtn.classList.replace('bg-emerald-600', 'bg-red-600');
-                listenBtn.classList.replace('hover:bg-emerald-700', 'hover:bg-red-700');
-                listenBtnText.textContent = "Stop Listening";
-                listeningIndicator.classList.remove('opacity-0');
-                listeningIndicator.classList.add('opacity-100');
-                
-                receivedTextEl.textContent = "";
-                currentReceivedBinary = "";
-                receivedBinaryEl.textContent = "";
-                isReceivingMessage = false;
-                
-                showStatus("Listening for signals...", "info");
-                
-                // Setup canvas dimensions
-                canvas.width = canvas.parentElement.clientWidth;
-                canvas.height = canvas.parentElement.clientHeight;
+            const ctx = getAudioContext();
 
-                processAudio();
+            try {
+                // Request mic stream with high sample rate and direct raw input
+                rxMicStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false
+                    }
+                });
+
+                rxSourceNode = ctx.createMediaStreamSource(rxMicStream);
+                rxAnalyser = ctx.createAnalyser();
+
+                // 8192 FFT Size provides ~5.85 Hz resolution per bin at 48kHz
+                rxAnalyser.fftSize = 8192;
+                rxAnalyser.smoothingTimeConstant = 0.2; // Fast response for symbols
+
+                rxSourceNode.connect(rxAnalyser);
+
+                isListening = true;
+                rxToggleBtn.classList.replace('bg-emerald-600', 'bg-rose-600');
+                rxToggleBtn.classList.replace('hover:bg-emerald-500', 'hover:bg-rose-500');
+                rxToggleBtn.innerHTML = '<span>🛑 STOP LISTENING</span>';
+                rxLed.className = 'w-3 h-3 rounded-full bg-emerald-400 animate-ping';
+
+                rxBitBufferString = "";
+                rxBitBuffer.textContent = "Listening for audio sync...";
+                rxOutputText.textContent = "Listening for incoming sound signal...";
+                crcBadge.classList.add('hidden');
+                rxState = "IDLE";
+
+                // Setup canvas dimensions
+                setupCanvasDimensions();
+
+                setStatus("Receiver active. Listening for acoustic sync preamble...");
+                processAudioFrame();
 
             } catch (err) {
-                console.error("Error accessing microphone:", err);
-                showStatus("Microphone access denied or error.", "error");
+                console.error("Microphone Access Error:", err);
+                setStatus("Microphone permission denied or device error.", true);
             }
         }
 
         function stopListening() {
             isListening = false;
-            if (microphone) microphone.disconnect();
-            if (analyzer) analyzer.disconnect();
-            cancelAnimationFrame(receiverAnimFrame);
-            
-            listenBtn.classList.replace('bg-red-600', 'bg-emerald-600');
-            listenBtn.classList.replace('hover:bg-red-700', 'hover:bg-emerald-700');
-            listenBtnText.textContent = "Start Listening";
-            listeningIndicator.classList.remove('opacity-100');
-            listeningIndicator.classList.add('opacity-0');
-            currentFreqEl.textContent = "-- Hz";
-            
-            // Clear canvas
-            canvasCtx.fillStyle = '#0f172a';
-            canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+            if (rxMicStream) {
+                rxMicStream.getTracks().forEach(t => t.stop());
+            }
+            if (rxSourceNode) rxSourceNode.disconnect();
+            if (rxAnalyser) rxAnalyser.disconnect();
+
+            if (rxAnimFrame) cancelAnimationFrame(rxAnimFrame);
+
+            rxToggleBtn.classList.replace('bg-rose-600', 'bg-emerald-600');
+            rxToggleBtn.classList.replace('hover:bg-rose-500', 'hover:bg-emerald-500');
+            rxToggleBtn.innerHTML = '<span>🎙️ START LISTENING</span>';
+            rxLed.className = 'w-3 h-3 rounded-full bg-slate-600';
+            snrBadge.textContent = "SNR: -- dB";
+            detectedFreqVal.textContent = "-- Hz";
+
+            setStatus("Receiver stopped.");
         }
 
-        // Variables for tracking bit timing in receiver
-        let lastDetectedBit = null;
-        let bitStartTime = 0;
-        
-        // Main Loop for analyzing incoming audio
-        function processAudio() {
+        function setupCanvasDimensions() {
+            spectrogramCanvas.width = spectrogramCanvas.parentElement.clientWidth;
+            spectrogramCanvas.height = spectrogramCanvas.parentElement.clientHeight;
+            spectrumCanvas.width = spectrumCanvas.parentElement.clientWidth;
+            spectrumCanvas.height = spectrumCanvas.parentElement.clientHeight;
+            txCanvas.width = txCanvas.parentElement.clientWidth;
+            txCanvas.height = txCanvas.parentElement.clientHeight;
+        }
+
+        window.addEventListener('resize', setupCanvasDimensions);
+
+        // Noise floor auto-calibration
+        calibrateNoiseBtn.addEventListener('click', () => {
+            if (!isListening || !rxAnalyser) {
+                setStatus("Start listening first to calibrate noise floor.", true);
+                return;
+            }
+            const buffer = new Float32Array(rxAnalyser.frequencyBinCount);
+            rxAnalyser.getFloatFrequencyData(buffer);
+            let sum = 0;
+            for (let i = 0; i < buffer.length; i++) sum += buffer[i];
+            noiseFloorDb = sum / buffer.length;
+            setStatus(`Noise floor calibrated at ${noiseFloorDb.toFixed(1)} dB`);
+        });
+
+
+        // Main Real-Time Audio Processing Loop
+        function processAudioFrame() {
             if (!isListening) return;
 
-            const bufferLength = analyzer.frequencyBinCount;
-            const dataArray = new Float32Array(bufferLength);
-            analyzer.getFloatFrequencyData(dataArray);
+            const bufferLength = rxAnalyser.frequencyBinCount;
+            const fftData = new Float32Array(bufferLength);
+            rxAnalyser.getFloatFrequencyData(fftData);
 
             const sampleRate = audioCtx.sampleRate;
-            
-            // --- Visualization ---
-            drawVisualizer(dataArray, bufferLength, sampleRate);
 
-            // --- Frequency Detection ---
-            // Find the peak frequency in the current frame
-            let maxVal = -Infinity;
-            let peakIndex = -1;
-            
-            // Only search in the high frequency range to save computation
-            // roughly 16kHz to 22kHz
-            const minSearchFreq = 16000;
-            const maxSearchFreq = 22000;
-            
-            const minIndex = Math.floor(minSearchFreq * bufferLength / (sampleRate / 2));
-            const maxIndex = Math.floor(maxSearchFreq * bufferLength / (sampleRate / 2));
+            // Render Spectrogram Waterfall and Spectrum Graph
+            renderSpectrogram(fftData, bufferLength, sampleRate);
+            renderSpectrumGraph(fftData, bufferLength, sampleRate);
 
-            for (let i = minIndex; i < maxIndex; i++) {
-                if (dataArray[i] > maxVal) {
-                    maxVal = dataArray[i];
-                    peakIndex = i;
-                }
+            // Compute Band Energies around F0, F1, and SYNC
+            const syncEnergy = getFrequencyEnergy(fftData, activeProfile.sync, sampleRate, bufferLength);
+            const f0Energy = getFrequencyEnergy(fftData, activeProfile.f0, sampleRate, bufferLength);
+            const f1Energy = getFrequencyEnergy(fftData, activeProfile.f1, sampleRate, bufferLength);
+
+            const maxEnergy = Math.max(syncEnergy, f0Energy, f1Energy);
+            const ambientAvg = (syncEnergy + f0Energy + f1Energy) / 3;
+            const snr = maxEnergy - ambientAvg;
+
+            snrBadge.textContent = `SNR: ${snr.toFixed(1)} dB`;
+
+            // Detect peak frequency
+            let currentPeakFreq = 0;
+            if (maxEnergy > noiseFloorDb + 15) { // Minimum threshold
+                if (maxEnergy === syncEnergy) currentPeakFreq = activeProfile.sync;
+                else if (maxEnergy === f0Energy) currentPeakFreq = activeProfile.f0;
+                else if (maxEnergy === f1Energy) currentPeakFreq = activeProfile.f1;
             }
 
-            // Calculate actual frequency of the peak
-            const peakFreq = peakIndex * (sampleRate / 2) / bufferLength;
-            
-            // Threshold for volume (in decibels). Adjust if ambient noise triggers false positives.
-            // Note: getFloatFrequencyData returns values usually between -100 and 0.
-            const VOLUME_THRESHOLD = -60; 
-
-            if (maxVal > VOLUME_THRESHOLD) {
-                 currentFreqEl.textContent = `${Math.round(peakFreq)} Hz`;
-                 
-                 // Logic to decode bits based on sustained frequency
-                 decodeLogic(peakFreq);
+            if (currentPeakFreq > 0) {
+                detectedFreqVal.textContent = `${currentPeakFreq} Hz`;
             } else {
-                 currentFreqEl.textContent = `-- Hz`;
-                 // If silence is detected for a long time, consider transmission ended
-                 if (isReceivingMessage && (performance.now() - bitStartTime > BIT_DURATION_MS * 4)) {
-                     endReception();
-                 }
+                detectedFreqVal.textContent = `-- Hz`;
             }
 
-            receiverAnimFrame = requestAnimationFrame(processAudio);
-        }
-
-        // --- STREAMING_CHUNK:Signal Decoding Logic ---
-        function decodeLogic(peakFreq) {
+            // FSK State Machine & Symbol Decoder
             const now = performance.now();
-            let detectedBit = null;
 
-            // Check which target frequency is closest
-            if (Math.abs(peakFreq - START_BIT_FREQ) < FREQ_TOLERANCE) {
-                // Detected Start Signal
-                if (!isReceivingMessage) {
-                    isReceivingMessage = true;
-                    currentReceivedBinary = "";
-                    receivedBinaryEl.textContent = "";
-                    receivedTextEl.textContent = "Receiving...";
-                    showStatus("Incoming signal detected...", "info");
-                    lastDetectedBit = 'START';
-                    bitStartTime = now;
-                }
-                return; // Don't process as data bit
-            } else if (Math.abs(peakFreq - FREQ_0) < FREQ_TOLERANCE) {
-                detectedBit = '0';
-            } else if (Math.abs(peakFreq - FREQ_1) < FREQ_TOLERANCE) {
-                detectedBit = '1';
-            }
-
-            if (!isReceivingMessage) return; // Ignore data bits if we haven't seen a start signal
-
-            // Logic to register a bit only if it's held for roughly the expected duration
-            // This prevents rapid double-counting of the same tone
-            if (detectedBit) {
-                if (detectedBit !== lastDetectedBit) {
-                    // New bit type detected, start timing it
-                    lastDetectedBit = detectedBit;
-                    bitStartTime = now;
+            if (rxState === "IDLE") {
+                // Look for Sync Preamble Tone
+                if (currentPeakFreq === activeProfile.sync && snr > 12) {
+                    preambleDetectCount++;
+                    if (preambleDetectCount >= 3) { // Require 3 consecutive hits
+                        rxState = "SYNCED";
+                        rxBitBufferString = "";
+                        preambleDetectCount = 0;
+                        lastSymbolTime = now + (symbolDurationMs * 0.5); // align sampling to center of bit
+                        setStatus("SYNC DETECTED! Lock acquired. Receiving payload...", false);
+                        rxBitBuffer.textContent = "Sync locked... receiving bits...";
+                    }
                 } else {
-                    // Same bit tone continuing. Has it been held long enough to register?
-                    // We register a bit if held for more than half the expected duration
-                    const timeHeld = now - bitStartTime;
-                    
-                    // We use a small flag to prevent registering the exact same continuous tone multiple times
-                    // However, we need to handle repeating bits (e.g., '00'). 
-                    // In a robust system, clock sync is used. Here, we rely on the gap between tones 
-                    // implemented in the sender. If we detect the tone again after a sufficient gap, it's a new bit.
-                    // Simplified approach for this demo:
-                    
-                    if (timeHeld > (BIT_DURATION_MS * 0.4)) {
-                         registerBit(detectedBit);
-                         // Reset timer so we don't register it again until tone stops and starts, 
-                         // or we just wait for the sender's gap.
-                         // Setting lastDetectedBit to null forces it to require a fresh detection
-                         lastDetectedBit = null; 
+                    preambleDetectCount = 0;
+                }
+            } 
+            else if (rxState === "SYNCED" || rxState === "RECEIVING") {
+                // Symbol Clock Trigger
+                if (now - lastSymbolTime >= symbolDurationMs) {
+                    lastSymbolTime = now;
+
+                    let detectedBit = null;
+                    if (f1Energy > f0Energy && f1Energy > activeProfile.sync) {
+                        detectedBit = "1";
+                    } else if (f0Energy > f1Energy && f0Energy > activeProfile.sync) {
+                        detectedBit = "0";
+                    }
+
+                    if (detectedBit !== null) {
+                        rxState = "RECEIVING";
+                        rxBitBufferString += detectedBit;
+                        rxBitBuffer.textContent = rxBitBufferString;
+
+                        // On-the-fly attempt byte decoding
+                        parseRxBuffer();
+                    } else {
+                        // Timeout / Silence after receiving
+                        if (rxBitBufferString.length >= 16 && (now - lastSymbolTime > symbolDurationMs * 3)) {
+                            finalizePacketDecoding();
+                        }
                     }
                 }
             }
+
+            rxAnimFrame = requestAnimationFrame(processAudioFrame);
         }
 
-        function registerBit(bit) {
-            currentReceivedBinary += bit;
-            receivedBinaryEl.textContent = currentReceivedBinary;
-            
-            // Try to decode on the fly for visual feedback
-            receivedTextEl.textContent = binaryToText(currentReceivedBinary) + "_";
-            
-            // Auto scroll binary
-            receivedBinaryEl.parentElement.scrollTop = receivedBinaryEl.parentElement.scrollHeight;
-        }
+        // Energy Integration in a narrow frequency band (+- 60 Hz) around target frequency
+        function getFrequencyEnergy(fftData, targetFreq, sampleRate, bufferLength) {
+            const binSize = (sampleRate / 2) / bufferLength;
+            const targetBin = Math.round(targetFreq / binSize);
+            const radius = Math.max(1, Math.round(60 / binSize)); // 60 Hz window
 
-        function endReception() {
-             isReceivingMessage = false;
-             lastDetectedBit = null;
-             
-             const finalString = binaryToText(currentReceivedBinary);
-             if(finalString.length > 0) {
-                 receivedTextEl.textContent = finalString;
-                 showStatus("Message received completely.", "info");
-             } else {
-                 receivedTextEl.textContent = "Error: Invalid data received.";
-             }
-        }
-
-        // --- STREAMING_CHUNK:Visualizer ---
-        function drawVisualizer(dataArray, bufferLength, sampleRate) {
-            canvasCtx.fillStyle = '#0f172a'; // Match background
-            canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
-
-            canvasCtx.lineWidth = 2;
-            canvasCtx.strokeStyle = '#3b82f6'; // Blue
-            canvasCtx.beginPath();
-
-            // We only want to draw the relevant frequency range (e.g., 15kHz to 22kHz)
-            const minDrawFreq = 15000;
-            const maxDrawFreq = 22000;
-            const minIndex = Math.floor(minDrawFreq * bufferLength / (sampleRate / 2));
-            const maxIndex = Math.floor(maxDrawFreq * bufferLength / (sampleRate / 2));
-            
-            const drawRange = maxIndex - minIndex;
-            const sliceWidth = canvas.width * 1.0 / drawRange;
-            let x = 0;
-
-            for (let i = minIndex; i < maxIndex; i++) {
-                // Data is in dB (-100 to 0 approx). Normalize to 0-1 for drawing
-                const v = (dataArray[i] + 100) / 100; 
-                // Clamp values
-                const normalizedV = Math.max(0, Math.min(1, v));
-                
-                const y = canvas.height - (normalizedV * canvas.height);
-
-                if (i === minIndex) {
-                    canvasCtx.moveTo(x, y);
-                } else {
-                    canvasCtx.lineTo(x, y);
+            let sum = 0;
+            let count = 0;
+            for (let i = targetBin - radius; i <= targetBin + radius; i++) {
+                if (i >= 0 && i < bufferLength) {
+                    sum += fftData[i];
+                    count++;
                 }
+            }
+            return sum / count;
+        }
 
-                x += sliceWidth;
-                
-                // Highlight target frequencies
-                const currentFreq = i * (sampleRate / 2) / bufferLength;
-                if (Math.abs(currentFreq - FREQ_0) < 50) {
-                    canvasCtx.fillStyle = '#3b82f6'; // Blue for 0
-                    canvasCtx.fillRect(x, canvas.height - 5, 2, 5);
-                }
-                if (Math.abs(currentFreq - FREQ_1) < 50) {
-                    canvasCtx.fillStyle = '#10b981'; // Emerald for 1
-                    canvasCtx.fillRect(x, canvas.height - 5, 2, 5);
+        // Parse accumulated bits into bytes and text
+        function parseRxBuffer() {
+            if (rxBitBufferString.length < 16) return; // Need at least Length byte + 1 Payload byte
+
+            // Convert bit string to bytes
+            const bytes = [];
+            for (let i = 0; i + 8 <= rxBitBufferString.length; i += 8) {
+                const byteStr = rxBitBufferString.substring(i, i + 8);
+                bytes.push(parseInt(byteStr, 2));
+            }
+
+            const payloadLen = bytes[0];
+            expectedBytesCount = 1 + payloadLen + 1; // [Len] + Payload + [CRC8]
+
+            if (bytes.length >= expectedBytesCount) {
+                finalizePacketDecoding();
+            }
+        }
+
+        function finalizePacketDecoding() {
+            const bytes = [];
+            for (let i = 0; i + 8 <= rxBitBufferString.length; i += 8) {
+                const byteStr = rxBitBufferString.substring(i, i + 8);
+                bytes.push(parseInt(byteStr, 2));
+            }
+
+            if (bytes.length < 3) {
+                rxOutputText.textContent = "Error: Incomplete packet received.";
+                rxState = "IDLE";
+                return;
+            }
+
+            const len = bytes[0];
+            const payloadBytes = new Uint8Array(bytes.slice(1, 1 + len));
+            const rxCrc = bytes[1 + len];
+
+            // Verify CRC8
+            const verifyBuffer = new Uint8Array(1 + len);
+            verifyBuffer[0] = len;
+            verifyBuffer.set(payloadBytes, 1);
+
+            const calculatedCrc = calculateCRC8(verifyBuffer);
+
+            const decoder = new TextDecoder();
+            const decodedString = decoder.decode(payloadBytes);
+
+            rxOutputText.textContent = decodedString || "[Empty Payload]";
+
+            if (rxCrc === calculatedCrc) {
+                crcBadge.classList.remove('hidden');
+                crcBadge.textContent = "CRC-8 PASSED ✅";
+                crcBadge.className = "text-[10px] px-2 py-0.5 rounded font-bold bg-emerald-950 text-emerald-400 border border-emerald-800";
+                setStatus(`Packet received successfully! Message: "${decodedString}"`);
+            } else {
+                crcBadge.classList.remove('hidden');
+                crcBadge.textContent = "CRC-8 ERROR ❌";
+                crcBadge.className = "text-[10px] px-2 py-0.5 rounded font-bold bg-rose-950 text-rose-400 border border-rose-800";
+                setStatus("Packet received with CRC checksum error. Noise may have corrupted bits.", true);
+            }
+
+            rxState = "IDLE";
+        }
+
+
+        // Render Waterfall Spectrogram
+        function renderSpectrogram(fftData, bufferLength, sampleRate) {
+            const ctx = spectrogramCtx;
+            const width = spectrogramCanvas.width;
+            const height = spectrogramCanvas.height;
+
+            // Shift existing image down 2 pixels
+            const imgData = ctx.getImageData(0, 0, width, height - 2);
+            ctx.putImageData(imgData, 0, 2);
+
+            // Draw new top row
+            const minFreq = 15000;
+            const maxFreq = 21000;
+            const binSize = (sampleRate / 2) / bufferLength;
+
+            const minBin = Math.floor(minFreq / binSize);
+            const maxBin = Math.ceil(maxFreq / binSize);
+            const binRange = maxBin - minBin;
+
+            const rowImg = ctx.createImageData(width, 2);
+
+            for (let x = 0; x < width; x++) {
+                const binIdx = minBin + Math.floor((x / width) * binRange);
+                const db = fftData[binIdx] || -100;
+
+                // Color Map: Normalized -90dB to -30dB -> Heatmap
+                const norm = Math.max(0, Math.min(1, (db + 90) / 60));
+                const color = getHeatmapColor(norm);
+
+                for (let y = 0; y < 2; y++) {
+                    const idx = (y * width + x) * 4;
+                    rowImg.data[idx] = color.r;
+                    rowImg.data[idx + 1] = color.g;
+                    rowImg.data[idx + 2] = color.b;
+                    rowImg.data[idx + 3] = 255;
                 }
             }
 
-            canvasCtx.stroke();
+            ctx.putImageData(rowImg, 0, 0);
         }
 
-        // Handle Window resize for canvas
-        window.addEventListener('resize', () => {
-             if(isListening) {
-                 canvas.width = canvas.parentElement.clientWidth;
-                 canvas.height = canvas.parentElement.clientHeight;
-             }
+        // Heatmap Color Gradient (Black -> Indigo -> Cyan -> Green -> Yellow -> Red)
+        function getHeatmapColor(val) {
+            if (val < 0.2) {
+                return { r: 0, g: Math.floor(val * 5 * 100), b: Math.floor(val * 5 * 255) };
+            } else if (val < 0.5) {
+                return { r: 0, g: Math.floor((val - 0.2) * 3.33 * 255), b: Math.floor(255 - (val - 0.2) * 3.33 * 100) };
+            } else if (val < 0.8) {
+                return { r: Math.floor((val - 0.5) * 3.33 * 255), g: 255, b: 0 };
+            } else {
+                return { r: 255, g: Math.floor(255 - (val - 0.8) * 5 * 255), b: 0 };
+            }
+        }
+
+
+        // Render Spectrum Line Graph
+        function renderSpectrumGraph(fftData, bufferLength, sampleRate) {
+            const ctx = spectrumCtx;
+            const width = spectrumCanvas.width;
+            const height = spectrumCanvas.height;
+
+            ctx.fillStyle = '#020617';
+            ctx.fillRect(0, 0, width, height);
+
+            const minFreq = 15000;
+            const maxFreq = 21000;
+            const binSize = (sampleRate / 2) / bufferLength;
+
+            const minBin = Math.floor(minFreq / binSize);
+            const maxBin = Math.ceil(maxFreq / binSize);
+            const binRange = maxBin - minBin;
+
+            ctx.beginPath();
+            ctx.strokeStyle = '#10b981';
+            ctx.lineWidth = 1.5;
+
+            for (let x = 0; x < width; x++) {
+                const binIdx = minBin + Math.floor((x / width) * binRange);
+                const db = fftData[binIdx] || -100;
+                const norm = Math.max(0, Math.min(1, (db + 100) / 70));
+                const y = height - (norm * height);
+
+                if (x === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // Draw Target Frequency Vertical Guide Markers
+            [activeProfile.sync, activeProfile.f0, activeProfile.f1].forEach((f, idx) => {
+                const x = ((f - minFreq) / (maxFreq - minFreq)) * width;
+                if (x >= 0 && x <= width) {
+                    ctx.strokeStyle = idx === 0 ? '#a855f7' : (idx === 1 ? '#06b6d4' : '#10b981');
+                    ctx.setLineDash([2, 2]);
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, height);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+            });
+        }
+
+        // Initialize Canvas Sizes on Load
+        window.addEventListener('load', () => {
+            setupCanvasDimensions();
+            updatePacketPreview();
         });
 
     </script>
