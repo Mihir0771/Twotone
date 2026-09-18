@@ -1,988 +1,1214 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sonic Nexus - Ultrasound Data Transceiver</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #090d16;
-            color: #f1f5f9;
-        }
-        .font-mono {
-            font-family: 'JetBrains Mono', monospace;
-        }
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #0f172a;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #334155;
-            border-radius: 3px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #475569;
-        }
-        .glow-blue {
-            box-shadow: 0 0 25px -5px rgba(59, 130, 246, 0.4);
-        }
-        .glow-emerald {
-            box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.4);
-        }
-        .glow-purple {
-            box-shadow: 0 0 25px -5px rgba(168, 85, 247, 0.4);
-        }
-        .waterfall-canvas {
-            image-rendering: pixelated;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Twotone — text over sound</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F2EEE6;
+    --panel:#FFFFFF;
+    --panel-border:#DED7C7;
+    --screen-bg:#0E1512;
+    --screen-grid:rgba(255,255,255,0.07);
+    --screen-text:#CFE8DF;
+    --text:#1B1811;
+    --text-muted:#746C5E;
+    --accent-zero:#C9631A;
+    --accent-one:#0E9C82;
+    --accent-zero-soft:rgba(201,99,26,0.14);
+    --accent-one-soft:rgba(14,156,130,0.14);
+    --danger:#B3392F;
+    --focus:#1B1811;
+    --radius:10px;
+    --shadow:none;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#14110F;
+      --panel:#1E1A17;
+      --panel-border:#35302A;
+      --screen-bg:#060A09;
+      --screen-grid:rgba(255,255,255,0.07);
+      --screen-text:#CFE8DF;
+      --text:#EDE7DD;
+      --text-muted:#9C948A;
+      --accent-zero:#FF8A3D;
+      --accent-one:#33E0C0;
+      --accent-zero-soft:rgba(255,138,61,0.16);
+      --accent-one-soft:rgba(51,224,192,0.16);
+      --danger:#FF6B6B;
+      --focus:#EDE7DD;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#14110F;
+    --panel:#1E1A17;
+    --panel-border:#35302A;
+    --screen-bg:#060A09;
+    --screen-grid:rgba(255,255,255,0.07);
+    --screen-text:#CFE8DF;
+    --text:#EDE7DD;
+    --text-muted:#9C948A;
+    --accent-zero:#FF8A3D;
+    --accent-one:#33E0C0;
+    --accent-zero-soft:rgba(255,138,61,0.16);
+    --accent-one-soft:rgba(51,224,192,0.16);
+    --danger:#FF6B6B;
+    --focus:#EDE7DD;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Archivo',-apple-system,BlinkMacSystemFont,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  .mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;}
+  ::selection{background:var(--accent-one-soft);}
+  :focus-visible{outline:2px solid var(--focus); outline-offset:2px;}
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important;}
+  }
+
+  .wrap{max-width:640px; margin:0 auto; padding:18px 16px calc(48px + env(safe-area-inset-bottom)) 16px;}
+
+  /* Header */
+  header.top{
+    display:flex; align-items:flex-start; justify-content:space-between;
+    padding:6px 2px 18px;
+  }
+  .brand{display:flex; flex-direction:column; gap:4px;}
+  .brand h1{
+    margin:0; font-size:26px; font-weight:800; letter-spacing:-0.01em;
+    display:flex; align-items:baseline; gap:2px;
+  }
+  .brand h1 .tone-a{color:var(--accent-zero);}
+  .brand h1 .tone-b{color:var(--accent-one);}
+  .brand p{margin:0; font-size:13px; color:var(--text-muted); max-width:34ch; line-height:1.4;}
+  .legend{display:flex; gap:14px; margin-top:8px; font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--text-muted);}
+  .legend span{display:inline-flex; align-items:center; gap:6px;}
+  .dot{width:9px;height:9px;border-radius:50%; display:inline-block; flex:none;}
+  .dot.zero{background:var(--accent-zero);}
+  .dot.one{background:var(--accent-one);}
+  .theme-btn{
+    background:var(--panel); border:1px solid var(--panel-border); color:var(--text);
+    width:36px; height:36px; border-radius:50%; font-size:16px; cursor:pointer; flex:none;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .theme-btn:hover{border-color:var(--text-muted);}
+
+  /* Tabs */
+  .tabs{
+    display:grid; grid-template-columns:repeat(4,1fr);
+    background:var(--panel); border:1px solid var(--panel-border);
+    border-radius:var(--radius); overflow:hidden; margin-bottom:16px;
+  }
+  .tab-btn{
+    appearance:none; border:none; background:transparent; color:var(--text-muted);
+    font-family:'Archivo',sans-serif; font-weight:600; font-size:12.5px;
+    padding:11px 4px; cursor:pointer; border-right:1px solid var(--panel-border);
+    transition:background .15s ease, color .15s ease;
+  }
+  .tab-btn:last-child{border-right:none;}
+  .tab-btn[aria-selected="true"]{color:var(--text); background:var(--accent-one-soft);}
+  .tab-btn:hover{color:var(--text);}
+
+  .panel{
+    background:var(--panel); border:1px solid var(--panel-border); border-radius:var(--radius);
+    padding:18px; margin-bottom:16px;
+  }
+  .panel h2{margin:0 0 4px; font-size:15px; font-weight:700;}
+  .panel .sub{margin:0 0 14px; font-size:13px; color:var(--text-muted); line-height:1.45;}
+
+  /* Screen (oscilloscope-style live readout) */
+  .screen{
+    background:var(--screen-bg); border-radius:8px; padding:14px;
+    position:relative; overflow:hidden; border:1px solid rgba(0,0,0,0.35);
+  }
+  .screen canvas{display:block; width:100%; height:120px;}
+  .screen .status-row{
+    display:flex; align-items:center; justify-content:space-between;
+    font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--screen-text);
+    margin-bottom:8px; opacity:0.85;
+  }
+  .screen .status-row .status-dot{width:7px;height:7px;border-radius:50%;background:#555; display:inline-block; margin-right:6px;}
+  .screen .status-row .status-dot.live{background:var(--accent-one); box-shadow:0 0 6px var(--accent-one);}
+  .screen .status-row .status-dot.busy{background:var(--accent-zero); box-shadow:0 0 6px var(--accent-zero);}
+
+  textarea, input[type="text"]{
+    width:100%; background:var(--bg); color:var(--text); border:1px solid var(--panel-border);
+    border-radius:8px; padding:11px 12px; font-family:'IBM Plex Mono',monospace; font-size:14px;
+    resize:vertical; line-height:1.5;
+  }
+  textarea:focus, input[type="text"]:focus{border-color:var(--text-muted);}
+  .field-row{display:flex; justify-content:space-between; align-items:center; margin-top:6px; font-size:11.5px; color:var(--text-muted); font-family:'IBM Plex Mono',monospace;}
+  .field-row.warn{color:var(--danger);}
+
+  .btn{
+    appearance:none; border:none; cursor:pointer; border-radius:8px;
+    font-family:'Archivo',sans-serif; font-weight:700; font-size:14.5px;
+    padding:13px 18px; width:100%; display:flex; align-items:center; justify-content:center; gap:8px;
+    transition:transform .08s ease, opacity .15s ease;
+  }
+  .btn:active{transform:scale(0.985);}
+  .btn:disabled{opacity:0.45; cursor:not-allowed;}
+  .btn-primary{background:var(--text); color:var(--bg);}
+  .btn-stop{background:var(--danger); color:#fff;}
+  .btn-secondary{background:transparent; color:var(--text); border:1px solid var(--panel-border);}
+  .btn-row{display:flex; gap:10px; margin-top:12px;}
+  .btn-row .btn{width:auto; flex:1;}
+
+  .controls{margin-top:16px; display:flex; flex-direction:column; gap:14px;}
+  .slider-row label{display:flex; justify-content:space-between; font-size:13px; font-weight:600; margin-bottom:6px;}
+  .slider-row label .val{font-family:'IBM Plex Mono',monospace; font-weight:500; color:var(--text-muted);}
+  input[type="range"]{width:100%; accent-color:var(--accent-one);}
+  .toggle-row{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+  .toggle-row .lbl{font-size:13px; font-weight:600;}
+  .toggle-row .desc{font-size:12px; color:var(--text-muted); margin-top:2px;}
+  .switch{position:relative; width:42px; height:24px; flex:none;}
+  .switch input{opacity:0; width:0; height:0;}
+  .switch .track{position:absolute; inset:0; background:var(--panel-border); border-radius:999px; cursor:pointer; transition:background .15s;}
+  .switch .track::after{content:''; position:absolute; width:18px; height:18px; left:3px; top:3px; background:var(--panel); border-radius:50%; transition:transform .15s;}
+  .switch input:checked + .track{background:var(--accent-one);}
+  .switch input:checked + .track::after{transform:translateX(18px);}
+
+  details.advanced{margin-top:4px;}
+  details.advanced summary{cursor:pointer; font-size:12.5px; font-weight:600; color:var(--text-muted); padding:4px 0;}
+  details.advanced .adv-body{padding-top:10px; display:flex; flex-direction:column; gap:14px;}
+
+  .decoded-box{
+    background:var(--bg); border:1px dashed var(--panel-border); border-radius:8px;
+    padding:12px; min-height:48px; font-family:'IBM Plex Mono',monospace; font-size:14px;
+    white-space:pre-wrap; word-break:break-word; margin-top:12px;
+  }
+  .decoded-box.empty{color:var(--text-muted); font-style:italic;}
+  .crc-tag{display:inline-block; font-family:'IBM Plex Mono',monospace; font-size:10.5px; font-weight:600; padding:2px 7px; border-radius:999px; margin-left:8px; vertical-align:middle;}
+  .crc-tag.ok{background:var(--accent-one-soft); color:var(--accent-one);}
+  .crc-tag.bad{background:rgba(179,57,47,0.14); color:var(--danger);}
+
+  .log{margin-top:14px; display:flex; flex-direction:column; gap:8px; max-height:220px; overflow-y:auto;}
+  .log-item{border:1px solid var(--panel-border); border-radius:8px; padding:9px 11px; font-size:13px;}
+  .log-item .meta{font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--text-muted); margin-bottom:3px; display:flex; justify-content:space-between;}
+  .log-empty{font-size:12.5px; color:var(--text-muted); font-style:italic;}
+
+  .steps{list-style:none; margin:0; padding:0; counter-reset:step;}
+  .steps li{counter-increment:step; position:relative; padding:0 0 18px 34px; font-size:13.5px; line-height:1.55; color:var(--text);}
+  .steps li:last-child{padding-bottom:0;}
+  .steps li::before{
+    content:counter(step); position:absolute; left:0; top:0; width:22px; height:22px;
+    border-radius:50%; background:var(--accent-one-soft); color:var(--accent-one);
+    font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .steps li strong{display:block; margin-bottom:2px; font-weight:700; color:var(--text);}
+  .steps li::after{
+    content:''; position:absolute; left:11px; top:24px; bottom:-2px; width:1px; background:var(--panel-border);
+  }
+  .steps li:last-child::after{display:none;}
+
+  .frame-diagram{
+    display:flex; flex-wrap:wrap; gap:4px; margin:12px 0; font-family:'IBM Plex Mono',monospace; font-size:11px;
+  }
+  .frame-diagram .seg{
+    padding:7px 9px; border-radius:6px; background:var(--bg); border:1px solid var(--panel-border); color:var(--text-muted);
+    text-align:center; flex:1 1 auto; min-width:64px;
+  }
+  .frame-diagram .seg b{display:block; color:var(--text); font-size:12px; margin-bottom:2px;}
+
+  .tips{margin:0; padding-left:18px; font-size:13px; line-height:1.65; color:var(--text);}
+  .tips li{margin-bottom:6px;}
+  .tips li::marker{color:var(--accent-one);}
+
+  .mic-help{
+    margin-top:12px; padding:12px 13px; border-radius:8px;
+    background:rgba(179,57,47,0.08); border:1px solid rgba(179,57,47,0.35);
+    font-size:12.5px; line-height:1.6;
+  }
+  .mic-help strong{display:block; color:var(--danger); font-size:13px; margin-bottom:5px;}
+  .mic-help ul{margin:6px 0 0; padding-left:18px;}
+  .mic-help li{margin-bottom:3px;}
+
+  .note{
+    font-size:12.5px; color:var(--text-muted); line-height:1.55; margin-top:14px;
+    padding-top:14px; border-top:1px solid var(--panel-border);
+  }
+
+  footer.app-footer{text-align:center; font-size:11.5px; color:var(--text-muted); padding:8px 0 0;}
+
+  .selftest-result{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px;}
+  .selftest-result .card{background:var(--bg); border:1px solid var(--panel-border); border-radius:8px; padding:10px;}
+  .selftest-result .card h4{margin:0 0 6px; font-size:11px; text-transform:none; color:var(--text-muted); font-weight:600;}
+  .selftest-result .card .txt{font-family:'IBM Plex Mono',monospace; font-size:13px; word-break:break-word;}
+  @media (max-width:420px){ .selftest-result{grid-template-columns:1fr;} }
+
+  .vis-legend{display:flex; gap:14px; font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--screen-text); opacity:0.7; margin-top:6px;}
+</style>
 </head>
-<body class="min-h-screen flex flex-col justify-between p-3 md:p-6 selection:bg-cyan-500 selection:text-black">
+<body>
+<div class="wrap">
 
-    <div class="max-w-7xl mx-auto w-full flex flex-col gap-6">
-        
-        <!-- Header -->
-        <header class="flex flex-col md:flex-row justify-between items-start md:items-center bg-slate-900/80 backdrop-blur-md p-4 md:p-6 rounded-2xl border border-slate-800 shadow-2xl gap-4">
-            <div class="flex items-center gap-4">
-                <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-slate-950 font-black text-2xl shadow-lg glow-blue">
-                    ⚡
-                </div>
-                <div>
-                    <h1 class="text-2xl md:text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-300">
-                        SONIC NEXUS
-                    </h1>
-                    <p class="text-xs md:text-sm text-slate-400">High-Precision Acoustic Data Transceiver (FSK over Near-Ultrasound)</p>
-                </div>
-            </div>
+  <header class="top">
+    <div class="brand">
+      <h1><span class="tone-a">Two</span><span class="tone-b">tone</span></h1>
+      <p>Send text as two tones above the range of hearing — 18.5 kHz for 0, 19.5 kHz for 1.</p>
+      <div class="legend">
+        <span><span class="dot zero"></span>18.5 kHz = 0</span>
+        <span><span class="dot one"></span>19.5 kHz = 1</span>
+      </div>
+    </div>
+    <button class="theme-btn" id="themeBtn" aria-label="Toggle color theme" title="Toggle theme">◐</button>
+  </header>
 
-            <!-- Global Status Badges -->
-            <div class="flex flex-wrap items-center gap-3 text-xs font-mono">
-                <div class="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg flex items-center gap-2">
-                    <span class="text-slate-400">Audio Context:</span>
-                    <span id="audioContextStatus" class="text-amber-400 font-bold">STANDBY</span>
-                </div>
-                <div class="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg flex items-center gap-2">
-                    <span class="text-slate-400">Sample Rate:</span>
-                    <span id="sampleRateVal" class="text-cyan-400 font-bold">-- Hz</span>
-                </div>
-            </div>
-        </header>
+  <div class="tabs" role="tablist">
+    <button class="tab-btn" role="tab" aria-selected="true" data-tab="send">Send</button>
+    <button class="tab-btn" role="tab" aria-selected="false" data-tab="receive">Receive</button>
+    <button class="tab-btn" role="tab" aria-selected="false" data-tab="calibrate">Calibrate</button>
+    <button class="tab-btn" role="tab" aria-selected="false" data-tab="about">How it works</button>
+  </div>
 
-        <!-- Configuration & Diagnostics Bar -->
-        <section class="bg-slate-900/60 rounded-xl border border-slate-800/80 p-4 grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
-            <div>
-                <label class="block text-slate-400 font-medium mb-1.5">Frequency Preset Profile</label>
-                <select id="freqProfileSelect" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-cyan-300 font-semibold focus:ring-2 focus:ring-cyan-500 outline-none">
-                    <option value="ultrasonic">Ultrasonic Band (18.5 kHz / 19.5 kHz)</option>
-                    <option value="near_ultrasonic">Near-Ultrasonic (16.5 kHz / 17.5 kHz)</option>
-                    <option value="audible_high">Audible Debug (12.0 kHz / 13.0 kHz)</option>
-                    <option value="custom">Custom Frequency Pair</option>
-                </select>
-            </div>
+  <!-- SEND -->
+  <section class="tab-panel" id="tab-send">
+    <div class="panel">
+      <h2>Compose</h2>
+      <p class="sub">Type a short message. It's packed into bytes, framed with a sync pattern and checksum, then played as a sequence of two tones.</p>
+      <textarea id="sendText" rows="3" maxlength="400" placeholder="Type your message…">Hello from Twotone</textarea>
+      <div class="field-row">
+        <span id="byteCount">0 / 255 bytes</span>
+        <span id="estTime" class="mono">~0.0s to send</span>
+      </div>
 
-            <div id="customFreqInputs" class="hidden col-span-1 md:col-span-1 grid grid-cols-2 gap-2">
-                <div>
-                    <label class="block text-slate-400 mb-1">Bit 0 Freq (Hz)</label>
-                    <input type="number" id="customFreq0" value="18500" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200">
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1">Bit 1 Freq (Hz)</label>
-                    <input type="number" id="customFreq1" value="19500" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200">
-                </div>
-            </div>
+      <div class="screen" style="margin-top:14px;">
+        <div class="status-row">
+          <span><span class="status-dot" id="txStatusDot"></span><span id="txStatusText">Idle</span></span>
+          <span id="txBitReadout">—</span>
+        </div>
+        <canvas id="txCanvas"></canvas>
+      </div>
 
-            <div>
-                <label class="block text-slate-400 font-medium mb-1.5">Baud Rate (Symbol Time)</label>
-                <select id="baudRateSelect" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-indigo-300 font-semibold focus:ring-2 focus:ring-indigo-500 outline-none">
-                    <option value="100">Fast (100ms / bit) ~10 bps</option>
-                    <option value="150">Balanced (150ms / bit) ~6.6 bps</option>
-                    <option value="200" selected>Reliable (200ms / bit) ~5 bps</option>
-                    <option value="300">Robust (300ms / bit) ~3.3 bps</option>
-                </select>
-            </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="sendBtn">▲ Transmit</button>
+      </div>
 
-            <div class="flex items-end gap-2">
-                <button id="speakerTestBtn" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-medium py-2 px-3 rounded-lg transition flex items-center justify-center gap-2">
-                    <span>🔊 Test Speaker Frequencies</span>
-                </button>
-            </div>
-        </section>
+      <div class="controls">
+        <div class="slider-row">
+          <label>Volume <span class="val" id="volVal">80%</span></label>
+          <input type="range" id="volSlider" min="10" max="100" value="80">
+        </div>
+        <div class="toggle-row">
+          <div>
+            <div class="lbl">Robust mode</div>
+            <div class="desc">Repeats every bit 3× for reliability. About 3× slower to send.</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="robustToggle">
+            <span class="track"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+  </section>
 
-        <!-- Main Transceiver Workspace -->
-        <main class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+  <!-- RECEIVE -->
+  <section class="tab-panel" id="tab-receive" hidden>
+    <div class="panel">
+      <h2>Listen</h2>
+      <p class="sub">Uses your microphone to listen for the two tones and decode them back into text. Keep the sending device's speaker close by, and turn its volume up.</p>
 
-            <!-- TRANSMITTER PANEL -->
-            <div class="bg-slate-900/90 rounded-2xl border border-slate-800 p-5 md:p-6 shadow-xl flex flex-col justify-between h-[680px] glow-blue relative overflow-hidden">
-                <div class="absolute top-0 right-0 p-8 opacity-5 text-blue-500 text-9xl font-black pointer-events-none select-none">
-                    TX
-                </div>
+      <div class="screen">
+        <div class="status-row">
+          <span><span class="status-dot" id="rxStatusDot"></span><span id="rxStatusText">Not listening</span></span>
+          <span id="rxModeReadout" class="mono"></span>
+        </div>
+        <canvas id="rxCanvas"></canvas>
+        <div class="vis-legend">
+          <span><span class="dot zero" style="width:7px;height:7px;"></span>18.5 kHz</span>
+          <span><span class="dot one" style="width:7px;height:7px;"></span>19.5 kHz</span>
+          <span>┄ threshold</span>
+        </div>
+      </div>
 
-                <div>
-                    <!-- Panel Title -->
-                    <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
-                        <div class="flex items-center gap-2">
-                            <span class="w-3 h-3 rounded-full bg-blue-500 animate-pulse"></span>
-                            <h2 class="text-xl font-bold text-blue-400 tracking-wide">ACOUSTIC TRANSMITTER</h2>
-                        </div>
-                        <span id="txModeBadge" class="text-xs font-mono bg-blue-950 text-blue-300 border border-blue-800 px-2.5 py-1 rounded-full">FSK Ready</span>
-                    </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="listenBtn">● Start listening</button>
+      </div>
 
-                    <!-- Input Box -->
-                    <div class="mb-4">
-                        <div class="flex justify-between text-xs text-slate-400 mb-1.5">
-                            <label for="txInput">Message Payload</label>
-                            <span id="charCounter">0 / 40 chars</span>
-                        </div>
-                        <textarea id="txInput" rows="3" maxlength="40"
-                            class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-slate-100 font-mono focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none resize-none transition"
-                            placeholder="Type a short message (e.g. Hello Sonic!)..."></textarea>
-                    </div>
+      <div class="mic-help" id="rxMicHelp" hidden></div>
 
-                    <!-- Packet Encoding Diagnostics -->
-                    <div class="space-y-3 font-mono text-xs">
-                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3">
-                            <div class="text-slate-400 font-sans text-[11px] mb-1 flex justify-between">
-                                <span>PACKET FRAME BREAKDOWN</span>
-                                <span class="text-cyan-400">Preamble + Len + Payload + CRC8</span>
-                            </div>
-                            <div id="packetHexDisplay" class="text-cyan-300 break-all min-h-[18px]">-- -- -- --</div>
-                        </div>
+      <div id="decodedWrap">
+        <div class="decoded-box empty" id="decodedBox">Decoded messages will appear here.</div>
+      </div>
 
-                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3">
-                            <div class="text-slate-400 font-sans text-[11px] mb-1">BINARY STREAM (PHYSICAL LAYER)</div>
-                            <div id="binaryStreamDisplay" class="text-slate-500 break-all max-h-20 overflow-y-auto min-h-[36px]">Waiting for input...</div>
-                        </div>
-                    </div>
-                </div>
+      <div class="log" id="rxLog">
+        <div class="log-empty">No messages received yet this session.</div>
+      </div>
+    </div>
+  </section>
 
-                <!-- Transmitter Oscilloscope & Control -->
-                <div class="mt-4 space-y-3">
-                    <div class="h-16 bg-slate-950 rounded-xl border border-slate-800 overflow-hidden relative">
-                        <canvas id="txCanvas" class="w-full h-full"></canvas>
-                        <div id="txFrequencyIndicator" class="absolute bottom-1 right-2 text-[10px] font-mono text-blue-400">0.0 kHz</div>
-                    </div>
+  <!-- CALIBRATE -->
+  <section class="tab-panel" id="tab-calibrate" hidden>
+    <div class="panel">
+      <h2>Link settings</h2>
+      <p class="sub">Both devices need to agree on these three values — think of it as tuning to the same channel. The defaults work on most phones and laptops.</p>
 
-                    <button id="transmitBtn" class="w-full py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl transition shadow-lg flex items-center justify-center gap-2 group text-sm">
-                        <span>📡 BROADCAST VIA SOUND</span>
-                    </button>
-
-                    <!-- Progress Bar -->
-                    <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
-                        <div id="txProgressBar" class="bg-gradient-to-r from-cyan-400 to-blue-500 h-full w-0 transition-all duration-75"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- RECEIVER PANEL -->
-            <div class="bg-slate-900/90 rounded-2xl border border-slate-800 p-5 md:p-6 shadow-xl flex flex-col justify-between h-[680px] glow-emerald relative overflow-hidden">
-                <div class="absolute top-0 right-0 p-8 opacity-5 text-emerald-500 text-9xl font-black pointer-events-none select-none">
-                    RX
-                </div>
-
-                <div>
-                    <!-- Panel Title -->
-                    <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
-                        <div class="flex items-center gap-2">
-                            <span id="rxLed" class="w-3 h-3 rounded-full bg-slate-600"></span>
-                            <h2 class="text-xl font-bold text-emerald-400 tracking-wide">ACOUSTIC RECEIVER</h2>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span id="snrBadge" class="text-xs font-mono bg-slate-950 text-emerald-400 border border-slate-800 px-2.5 py-1 rounded-full">SNR: -- dB</span>
-                        </div>
-                    </div>
-
-                    <!-- Spectrogram Waterfall Display -->
-                    <div class="mb-3">
-                        <div class="flex justify-between text-xs text-slate-400 mb-1 font-mono">
-                            <span>SPECTROGRAM WATERFALL (15 - 21 kHz)</span>
-                            <span id="detectedFreqVal" class="text-emerald-400 font-bold">-- Hz</span>
-                        </div>
-                        <div class="h-32 bg-slate-950 rounded-xl border border-slate-800 overflow-hidden relative">
-                            <canvas id="spectrogramCanvas" class="w-full h-full waterfall-canvas"></canvas>
-                            <!-- Frequency Markers overlays -->
-                            <div class="absolute inset-x-0 bottom-0 top-0 pointer-events-none border-b border-slate-800 flex justify-between px-2 text-[9px] text-slate-500 font-mono items-end pb-0.5">
-                                <span>15kHz</span>
-                                <span class="text-cyan-500 font-bold">F0</span>
-                                <span class="text-emerald-500 font-bold">F1</span>
-                                <span>21kHz</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Spectrum Power Density Graph -->
-                    <div class="mb-3">
-                        <div class="h-14 bg-slate-950 rounded-xl border border-slate-800 overflow-hidden">
-                            <canvas id="spectrumCanvas" class="w-full h-full"></canvas>
-                        </div>
-                    </div>
-
-                    <!-- Decoded Result Box -->
-                    <div class="space-y-2 font-mono text-xs">
-                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3">
-                            <div class="text-slate-400 font-sans text-[11px] mb-1 flex justify-between items-center">
-                                <span>RECEIVED DATA STREAM</span>
-                                <span id="crcBadge" class="hidden text-[10px] px-2 py-0.5 rounded font-bold bg-emerald-950 text-emerald-400 border border-emerald-800">
-                                    CRC-8 OK
-                                </span>
-                            </div>
-                            <div id="rxBitBuffer" class="text-emerald-500 break-all min-h-[18px] text-[11px]">Idle...</div>
-                        </div>
-
-                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3">
-                            <div class="text-slate-400 font-sans text-[11px] mb-1">DECODED MESSAGE</div>
-                            <div id="rxOutputText" class="text-emerald-300 font-sans font-bold text-base min-h-[32px] break-words flex items-center">
-                                Waiting for audio transmission...
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Receiver Controls -->
-                <div class="mt-4 flex gap-3">
-                    <button id="rxToggleBtn" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black rounded-xl transition shadow-lg flex items-center justify-center gap-2 text-sm">
-                        <span>🎙️ START LISTENING</span>
-                    </button>
-                    <button id="calibrateNoiseBtn" class="px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-xs border border-slate-700 transition">
-                        Calibrate
-                    </button>
-                </div>
-            </div>
-
-        </main>
-
-        <!-- Technical Footer -->
-        <footer class="bg-slate-900/60 rounded-xl border border-slate-800 p-4 text-xs text-slate-400 flex flex-col md:flex-row justify-between items-center gap-3">
-            <div class="flex items-center gap-3">
-                <span class="text-cyan-400 font-bold">Technical Specs:</span>
-                <span>Modulation: Binary FSK</span>
-                <span>•</span>
-                <span>Framing: Custom Sync + Payload + CRC8</span>
-                <span>•</span>
-                <span>DSP: FFT Window Integration</span>
-            </div>
-            <div id="statusBanner" class="text-amber-400 font-semibold font-mono">
-                System Ready. Place devices within range (0 - 3 meters).
-            </div>
-        </footer>
-
+      <div class="controls">
+        <div class="slider-row">
+          <label>Tone for 0 <span class="val" id="freq0Val">18500 Hz</span></label>
+          <input type="range" id="freq0Slider" min="17000" max="19800" step="100" value="18500">
+        </div>
+        <div class="slider-row">
+          <label>Tone for 1 <span class="val" id="freq1Val">19500 Hz</span></label>
+          <input type="range" id="freq1Slider" min="17100" max="19900" step="100" value="19500">
+        </div>
+        <div class="slider-row">
+          <label>Bit duration <span class="val" id="bitMsVal">100 ms</span></label>
+          <input type="range" id="bitMsSlider" min="40" max="250" step="10" value="100">
+        </div>
+        <div class="field-row" id="freqWarn" style="display:none;"></div>
+      </div>
     </div>
 
-    <script>
-        // =========================================================================
-        // SONIC NEXUS - Acoustic FSK Data Transceiver & Signal Processing Engine
-        // =========================================================================
+    <div class="panel">
+      <h2>Test your hardware</h2>
+      <p class="sub">Play each tone and confirm your device can produce it, then run a loopback test to send and receive on this device alone.</p>
 
-        // --- System Frequencies & Configurations ---
-        const PROFILES = {
-            ultrasonic:      { f0: 18500, f1: 19500, sync: 17500 },
-            near_ultrasonic: { f0: 16500, f1: 17500, sync: 15500 },
-            audible_high:    { f0: 12000, f1: 13000, sync: 11000 }
-        };
+      <div class="btn-row">
+        <button class="btn btn-secondary" id="play0Btn">Play tone 0</button>
+        <button class="btn btn-secondary" id="play1Btn">Play tone 1</button>
+      </div>
 
-        let activeProfile = { ...PROFILES.ultrasonic };
-        let symbolDurationMs = 200; // ms per bit
+      <div class="screen" style="margin-top:14px;">
+        <div class="status-row">
+          <span><span class="status-dot" id="calStatusDot"></span><span id="calStatusText">Idle</span></span>
+        </div>
+        <canvas id="calCanvas"></canvas>
+      </div>
 
-        // --- Global Web Audio States ---
-        let audioCtx = null;
-        let rxAnalyser = null;
-        let rxMicStream = null;
-        let rxSourceNode = null;
-        let isListening = false;
-        let isTransmitting = false;
+      <div class="btn-row">
+        <button class="btn btn-primary" id="selfTestBtn">Run self-test (loopback)</button>
+      </div>
 
-        // --- Receiver DSP & Demodulation Variables ---
-        let rxAnimFrame = null;
-        let noiseFloorDb = -80;
-        let rxBitBufferString = "";
-        let rxState = "IDLE"; // IDLE, SYNCED, RECEIVING
-        let lastSymbolTime = 0;
-        let currentSymbolSamples = [];
-        let preambleDetectCount = 0;
-        let expectedBytesCount = 0;
+      <div class="mic-help" id="calMicHelp" hidden></div>
 
-        // --- DOM Elements ---
-        const audioContextStatus = document.getElementById('audioContextStatus');
-        const sampleRateVal = document.getElementById('sampleRateVal');
-        const statusBanner = document.getElementById('statusBanner');
-        
-        // Settings
-        const freqProfileSelect = document.getElementById('freqProfileSelect');
-        const customFreqInputs = document.getElementById('customFreqInputs');
-        const customFreq0 = document.getElementById('customFreq0');
-        const customFreq1 = document.getElementById('customFreq1');
-        const baudRateSelect = document.getElementById('baudRateSelect');
-        const speakerTestBtn = document.getElementById('speakerTestBtn');
+      <div id="selfTestResult" style="display:none;" class="selftest-result">
+        <div class="card"><h4>Sent</h4><div class="txt" id="stSent"></div></div>
+        <div class="card"><h4>Decoded</h4><div class="txt" id="stDecoded"></div></div>
+      </div>
 
-        // Transmitter DOM
-        const txInput = document.getElementById('txInput');
-        const charCounter = document.getElementById('charCounter');
-        const packetHexDisplay = document.getElementById('packetHexDisplay');
-        const binaryStreamDisplay = document.getElementById('binaryStreamDisplay');
-        const transmitBtn = document.getElementById('transmitBtn');
-        const txProgressBar = document.getElementById('txProgressBar');
-        const txCanvas = document.getElementById('txCanvas');
-        const txFrequencyIndicator = document.getElementById('txFrequencyIndicator');
-        const txCtx = txCanvas.getContext('2d');
+      <div class="note">
+        <strong style="color:var(--text);">Before testing:</strong> disable Bluetooth speakers or headphones — nearly all Bluetooth audio codecs cut off well below 18 kHz, so this only works over a device's built-in speaker and microphone. Turn the volume all the way up and test in a quiet room.
+      </div>
+    </div>
+  </section>
 
-        // Receiver DOM
-        const rxToggleBtn = document.getElementById('rxToggleBtn');
-        const rxLed = document.getElementById('rxLed');
-        const snrBadge = document.getElementById('snrBadge');
-        const detectedFreqVal = document.getElementById('detectedFreqVal');
-        const rxBitBuffer = document.getElementById('rxBitBuffer');
-        const rxOutputText = document.getElementById('rxOutputText');
-        const crcBadge = document.getElementById('crcBadge');
-        const calibrateNoiseBtn = document.getElementById('calibrateNoiseBtn');
+  <!-- ABOUT -->
+  <section class="tab-panel" id="tab-about" hidden>
+    <div class="panel">
+      <h2>How a message travels</h2>
+      <ol class="steps">
+        <li><strong>Text to bytes</strong>Your message is encoded as UTF-8 bytes, the same as any text file.</li>
+        <li><strong>Bytes to bits</strong>Each byte becomes 8 bits — a string of 0s and 1s.</li>
+        <li><strong>Framing</strong>A sync pattern, a length byte, and a checksum are added around your message so the receiver can find the start of a transmission and verify it arrived correctly.</li>
+        <li><strong>Bits to tones</strong>Each bit is played as a short burst of one of two tones: 18.5 kHz for 0, 19.5 kHz for 1. Both sit just above where most adult hearing fades out, so the transmission is largely inaudible.</li>
+        <li><strong>Listening</strong>The receiving device's microphone picks up the sound, and a filter tuned to exactly those two frequencies measures which one is louder at each moment.</li>
+        <li><strong>Tones back to text</strong>The decoded bits are reassembled into bytes, the checksum is checked, and your message is displayed.</li>
+      </ol>
+    </div>
 
-        // Canvases
-        const spectrogramCanvas = document.getElementById('spectrogramCanvas');
-        const spectrogramCtx = spectrogramCanvas.getContext('2d');
-        const spectrumCanvas = document.getElementById('spectrumCanvas');
-        const spectrumCtx = spectrumCanvas.getContext('2d');
+    <div class="panel">
+      <h2>The frame</h2>
+      <p class="sub">This is the exact structure sent for every message:</p>
+      <div class="frame-diagram">
+        <div class="seg"><b>Preamble</b>24 alternating bits</div>
+        <div class="seg"><b>Sync word</b>marks frame start</div>
+        <div class="seg"><b>Length</b>1 byte</div>
+        <div class="seg"><b>Message</b>your text, in bytes</div>
+        <div class="seg"><b>Checksum</b>CRC-8</div>
+      </div>
+      <p class="sub" style="margin-bottom:0;">In robust mode every bit above is sent three times in a row, and the receiver takes a majority vote per bit — a form of forward error correction that trades speed for reliability.</p>
+    </div>
 
+    <div class="panel">
+      <h2>Getting a reliable link</h2>
+      <ul class="tips">
+        <li>Use each device's built-in speaker and microphone — Bluetooth audio almost never passes frequencies this high.</li>
+        <li>Keep the devices within a metre or so of each other, speaker facing microphone.</li>
+        <li>Turn the sending device's volume all the way up.</li>
+        <li>Test in a quiet room — fans, traffic, and music can share this band.</li>
+        <li>If messages keep failing the checksum, turn on robust mode, or increase the bit duration in Calibrate.</li>
+        <li>Older phones and laptop microphones sometimes roll off above 18 kHz in hardware — the self-test in Calibrate will show you whether yours can hear it at all.</li>
+      </ul>
+    </div>
+  </section>
 
-        // Ensure Audio Context is active on user click
-        function getAudioContext() {
-            if (!audioCtx) {
-                const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
-                audioCtx = new AudioCtxClass();
-                sampleRateVal.textContent = `${audioCtx.sampleRate} Hz`;
-            }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-            audioContextStatus.textContent = audioCtx.state.toUpperCase();
-            audioContextStatus.className = audioCtx.state === 'running' ? 'text-emerald-400 font-bold' : 'text-amber-400 font-bold';
-            return audioCtx;
+  <footer class="app-footer">Built for a hands-on experiment in acoustic data transfer. Runs entirely on-device — nothing you type or hear leaves your browser.</footer>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ================= Protocol constants ================= */
+  var PREAMBLE_LEN = 24;
+  var SYNC_NORMAL = [1,1,1,1,0,0,0,0];
+  var SYNC_ROBUST = [1,1,0,1,0,0,1,0]; // chosen so its tripled form never contains SYNC_NORMAL as a substring
+  var MAX_MSG_BYTES = 255;
+
+  function buildPreamble(){ var p=[]; for(var i=0;i<PREAMBLE_LEN;i++) p.push(i%2); return p; }
+  function textToBytes(str){ return Array.from(new TextEncoder().encode(str)); }
+  function bytesToText(bytes){ try { return new TextDecoder('utf-8', {fatal:false}).decode(new Uint8Array(bytes)); } catch(e){ return ''; } }
+  function byteToBits(byte){ var b=[]; for(var i=7;i>=0;i--) b.push((byte>>i)&1); return b; }
+  function bitsToByteVal(bits){ var v=0; for(var i=0;i<bits.length;i++) v=(v<<1)|(bits[i]&1); return v>>>0; }
+  function bitsToBytes(bits){ var out=[]; for(var i=0;i+8<=bits.length;i+=8){ out.push(bitsToByteVal(bits.slice(i,i+8))); } return out; }
+  function crc8(bytes){
+    var crc=0;
+    for (var i=0;i<bytes.length;i++){
+      crc ^= bytes[i];
+      for (var j=0;j<8;j++) crc = (crc & 0x80) ? ((crc<<1) ^ 0x07) & 0xFF : (crc<<1) & 0xFF;
+    }
+    return crc;
+  }
+  function tripleArr(bits){ var out=[]; for(var i=0;i<bits.length;i++){ out.push(bits[i],bits[i],bits[i]); } return out; }
+  function derepeat(bits){ var out=[]; for(var i=0;i+3<=bits.length;i+=3){ out.push((bits[i]+bits[i+1]+bits[i+2])>=2 ? 1:0); } return out; }
+  function arraysEqual(a,b){ if(a.length!==b.length) return false; for(var i=0;i<a.length;i++) if(a[i]!==b[i]) return false; return true; }
+
+  function buildFrameBits(text, robust){
+    // The preamble is never repeated, in either mode: its only job is letting the
+    // receiver recover bit timing from a clean, known-rate alternating pattern.
+    // Repetition coding (robust mode) protects the sync word, length, payload and
+    // checksum instead, since those are what actually needs to survive noise.
+    var msgBytes = textToBytes(text);
+    if (msgBytes.length > MAX_MSG_BYTES) throw new Error('Message too long — max ' + MAX_MSG_BYTES + ' bytes, this is ' + msgBytes.length + '.');
+    var sync = robust ? SYNC_ROBUST : SYNC_NORMAL;
+    var lenBits = byteToBits(msgBytes.length);
+    var payloadBits = [];
+    for (var i=0;i<msgBytes.length;i++) payloadBits = payloadBits.concat(byteToBits(msgBytes[i]));
+    var crcBits = byteToBits(crc8(msgBytes));
+    var afterPreamble = sync.concat(lenBits, payloadBits, crcBits);
+    if (robust) afterPreamble = tripleArr(afterPreamble);
+    return buildPreamble().concat(afterPreamble);
+  }
+
+  function goertzelMag(samples, freq, sampleRate){
+    var n = samples.length;
+    var omega = 2*Math.PI*freq/sampleRate;
+    var coeff = 2*Math.cos(omega);
+    var s0=0,s1=0,s2=0;
+    for (var i=0;i<n;i++){ s0 = samples[i] + coeff*s1 - s2; s2=s1; s1=s0; }
+    return Math.sqrt(Math.max(s1*s1 + s2*s2 - coeff*s1*s2, 0));
+  }
+
+  /* ================= Shared settings ================= */
+  var settings = { freq0: 18500, freq1: 19500, bitMs: 100, volume: 0.8, robust: false };
+  (function loadSettings(){
+    try {
+      var raw = localStorage.getItem('twotone-settings');
+      if (raw) { var s = JSON.parse(raw); for (var k in s) if (k in settings) settings[k] = s[k]; }
+    } catch(e){}
+  })();
+  function saveSettings(){
+    try { localStorage.setItem('twotone-settings', JSON.stringify(settings)); } catch(e){}
+  }
+
+  /* ================= Tabs ================= */
+  var tabBtns = Array.prototype.slice.call(document.querySelectorAll('.tab-btn'));
+  var panels = {
+    send: document.getElementById('tab-send'),
+    receive: document.getElementById('tab-receive'),
+    calibrate: document.getElementById('tab-calibrate'),
+    about: document.getElementById('tab-about')
+  };
+  tabBtns.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      tabBtns.forEach(function(b){ b.setAttribute('aria-selected', b===btn ? 'true':'false'); });
+      Object.keys(panels).forEach(function(k){ panels[k].hidden = (k !== btn.dataset.tab); });
+      // Canvases inside a hidden panel report zero size, so re-measure and redraw
+      // whichever canvas just became visible (function declarations below are hoisted).
+      requestAnimationFrame(function(){
+        window.dispatchEvent(new Event('resize'));
+        if (btn.dataset.tab === 'send') drawTxFrame(0, false);
+        if (btn.dataset.tab === 'receive' && !(receiver && receiver.running)) drawRxMeter(0,0,0.001,null,'idle');
+        if (btn.dataset.tab === 'calibrate') drawCalIdle();
+      });
+    });
+  });
+
+  /* ================= Theme toggle ================= */
+  var themeBtn = document.getElementById('themeBtn');
+  (function initTheme(){
+    try {
+      var t = localStorage.getItem('twotone-theme');
+      if (t) document.documentElement.setAttribute('data-theme', t);
+    } catch(e){}
+  })();
+  themeBtn.addEventListener('click', function(){
+    var cur = document.documentElement.getAttribute('data-theme');
+    var next = cur === 'dark' ? 'light' : (cur === 'light' ? 'dark' : (matchMedia('(prefers-color-scheme: dark)').matches ? 'light' : 'dark'));
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem('twotone-theme', next); } catch(e){}
+  });
+
+  /* ================= Canvas helpers ================= */
+  function setupCanvas(canvas){
+    var ctx2d = canvas.getContext('2d');
+    function resize(){
+      var rect = canvas.getBoundingClientRect();
+      var dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.max(1, rect.width * dpr);
+      canvas.height = Math.max(1, 120 * dpr);
+      ctx2d.setTransform(dpr,0,0,dpr,0,0);
+    }
+    resize();
+    window.addEventListener('resize', resize);
+    return ctx2d;
+  }
+  function drawGrid(ctx2d, w, h){
+    ctx2d.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--screen-grid').trim() || 'rgba(255,255,255,0.07)';
+    ctx2d.lineWidth = 1;
+    ctx2d.beginPath();
+    for (var x=0; x<w; x+=Math.max(24, w/12)){ ctx2d.moveTo(x+0.5,0); ctx2d.lineTo(x+0.5,h); }
+    for (var y=0; y<h; y+=Math.max(16, h/5)){ ctx2d.moveTo(0,y+0.5); ctx2d.lineTo(w,y+0.5); }
+    ctx2d.stroke();
+  }
+
+  /* ================= Transmitter ================= */
+  function Transmitter(){}
+  Transmitter.prototype.send = function(text, cfg, onProgress, onDone, onError){
+    var bits;
+    try { bits = buildFrameBits(text, cfg.robust); }
+    catch(e){ onError(e.message); return null; }
+
+    var Ctx = window.AudioContext || window.webkitAudioContext;
+    var ctx = new Ctx();
+    var osc = ctx.createOscillator();
+    osc.type = 'sine';
+    var gain = ctx.createGain();
+    var bitDur = cfg.bitMs/1000;
+    var lead = 0.09;
+
+    var proceed = function(){
+      var start = ctx.currentTime + lead;
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(cfg.volume, start+0.012);
+      for (var i=0;i<bits.length;i++){
+        osc.frequency.setValueAtTime(bits[i] ? cfg.freq1 : cfg.freq0, start + i*bitDur);
+      }
+      var end = start + bits.length*bitDur;
+      gain.gain.setValueAtTime(cfg.volume, Math.max(start, end-0.012));
+      gain.gain.linearRampToValueAtTime(0, end);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(start);
+      osc.stop(end + 0.03);
+
+      var stopped = false;
+      function raf(){
+        if (stopped) return;
+        var t = ctx.currentTime - start;
+        var idx = Math.floor(t/bitDur);
+        if (idx < bits.length){
+          onProgress({ index: Math.max(0,idx), total: bits.length, bit: idx<0?null:bits[idx] });
+          requestAnimationFrame(raf);
+        } else {
+          onProgress({ index: bits.length, total: bits.length, bit:null });
         }
+      }
+      requestAnimationFrame(raf);
 
-        function setStatus(msg, isError = false) {
-            statusBanner.textContent = msg;
-            statusBanner.className = isError 
-                ? 'text-red-400 font-semibold font-mono animate-pulse' 
-                : 'text-amber-400 font-semibold font-mono';
+      osc.onended = function(){
+        stopped = true;
+        try { ctx.close(); } catch(e){}
+        onDone();
+      };
+    };
+
+    if (ctx.state === 'suspended') { ctx.resume().then(proceed); } else { proceed(); }
+
+    return {
+      totalMs: bits.length * cfg.bitMs,
+      bitCount: bits.length,
+      stop: function(){
+        try { osc.stop(); } catch(e){}
+        try { ctx.close(); } catch(e){}
+      }
+    };
+  };
+
+  /* Simple tone playback for calibration */
+  function playTone(freq, ms){
+    var Ctx = window.AudioContext || window.webkitAudioContext;
+    var ctx = new Ctx();
+    var osc = ctx.createOscillator();
+    osc.type='sine'; osc.frequency.value = freq;
+    var gain = ctx.createGain();
+    var now = ctx.currentTime;
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(settings.volume, now+0.02);
+    gain.gain.setValueAtTime(settings.volume, now + ms/1000 - 0.03);
+    gain.gain.linearRampToValueAtTime(0, now + ms/1000);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + ms/1000 + 0.05);
+    osc.onended = function(){ try{ctx.close();}catch(e){} };
+  }
+
+  /* ================= Receiver ================= */
+  function Receiver(){ this.running=false; }
+  Receiver.mediaSupported = function(){
+    return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && !!(window.AudioContext || window.webkitAudioContext);
+  };
+  Receiver.prototype.start = function(cfg, cb){
+    var self = this;
+    self.cfg = cfg; self.cb = cb;
+    if (!Receiver.mediaSupported()){
+      var e = new Error('unsupported');
+      e.code = 'unsupported';
+      return Promise.reject(e);
+    }
+    var Ctx = window.AudioContext || window.webkitAudioContext;
+    self.ctx = new Ctx();
+    return self.ctx.resume().then(function(){
+      return navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation:false, noiseSuppression:false, autoGainControl:false,
+          channelCount:1
         }
+      });
+    }).catch(function(err){
+      try { self.ctx.close(); } catch(e2){}
+      throw err;
+    }).then(function(stream){
+      self.stream = stream;
+      self.source = self.ctx.createMediaStreamSource(stream);
+      self.analyser = self.ctx.createAnalyser();
+      var bitSec = cfg.bitMs/1000;
+      var windowSec = Math.min(0.05, Math.max(0.01, bitSec*0.35));
+      var fft = 256;
+      while (fft/self.ctx.sampleRate < windowSec && fft < 8192) fft *= 2;
+      self.analyser.fftSize = fft;
+      self.analyser.smoothingTimeConstant = 0;
+      self.buf = new Float32Array(fft);
+      self.source.connect(self.analyser);
+      self._resetState();
+      self.running = true;
+      self._loop();
+      return true;
+    });
+  };
+  Receiver.prototype.stop = function(){
+    this.running = false;
+    if (this.stream) { this.stream.getTracks().forEach(function(t){ t.stop(); }); }
+    if (this.ctx) { try { this.ctx.close(); } catch(e){} }
+  };
+  Receiver.prototype._resetState = function(){
+    this.state = 'searching';
+    this.noiseFloor = 0.0015;
+    this.lastSymbol = null;
+    this.lastFlipTime = null;
+    this.flipCount = 0;
+    this.bitOrigin = null;
+    this.nextSlotIndex = 0;
+    this.rawBits = [];
+    this.mode = null;
+    this.syncEnd = null;
+    this.lenKnown = false;
+    this.totalRawNeeded = null;
+  };
+  Receiver.prototype._readMags = function(){
+    this.analyser.getFloatTimeDomainData(this.buf);
+    var sr = this.ctx.sampleRate;
+    return { m0: goertzelMag(this.buf, this.cfg.freq0, sr), m1: goertzelMag(this.buf, this.cfg.freq1, sr) };
+  };
+  Receiver.prototype._loop = function(){
+    if (!this.running) return;
+    var self = this;
+    var mags = this._readMags();
+    var total = mags.m0 + mags.m1;
+    if (total < this.noiseFloor*4 || this.noiseFloor <= 0.0015){
+      this.noiseFloor = this.noiseFloor*0.98 + total*0.02;
+    }
+    var threshold = Math.max(this.noiseFloor*3, 0.0006);
+    var mag = Math.max(mags.m0, mags.m1);
+    var symbol = null;
+    if (mag > threshold) symbol = (mags.m1 > mags.m0) ? 1 : 0;
+    var now = this.ctx.currentTime;
 
-        // --- CRC-8 Checksum Algorithm (Polynomial 0x07) ---
-        function calculateCRC8(dataArray) {
-            let crc = 0x00;
-            for (let i = 0; i < dataArray.length; i++) {
-                crc ^= dataArray[i];
-                for (let j = 0; j < 8; j++) {
-                    if (crc & 0x80) {
-                        crc = ((crc << 1) ^ 0x07) & 0xFF;
-                    } else {
-                        crc = (crc << 1) & 0xFF;
-                    }
-                }
-            }
-            return crc;
+    this.cb.onLevel({ m0:mags.m0, m1:mags.m1, threshold:threshold, symbol:symbol, state:this.state });
+
+    if (this.state === 'searching'){
+      this._trackPreamble(symbol, now);
+    } else {
+      this._sampleSlots(now);
+    }
+    requestAnimationFrame(function(){ self._loop(); });
+  };
+  Receiver.prototype._trackPreamble = function(symbol, now){
+    if (symbol === null){ this.lastSymbol = null; return; }
+    if (this.lastSymbol === null){ this.lastSymbol = symbol; return; }
+    if (symbol !== this.lastSymbol){
+      var bitSec = this.cfg.bitMs/1000;
+      var tol = bitSec*0.45;
+      if (this.lastFlipTime !== null && Math.abs((now - this.lastFlipTime) - bitSec) <= tol){
+        this.flipCount++;
+      } else {
+        this.flipCount = 1;
+      }
+      this.lastFlipTime = now;
+      this.lastSymbol = symbol;
+      if (this.flipCount >= 4){
+        this.bitOrigin = now;
+        this.nextSlotIndex = 0;
+        this.rawBits = [];
+        this.mode = null;
+        this.syncEnd = null;
+        this.lenKnown = false;
+        this.state = 'locked';
+        this.cb.onStatus('locked');
+      }
+    }
+  };
+  Receiver.prototype._sampleSlots = function(now){
+    var bitSec = this.cfg.bitMs/1000;
+    var targetTime = this.bitOrigin + this.nextSlotIndex*bitSec + bitSec*0.85;
+    if (now >= targetTime){
+      var mags = this._readMags();
+      var bit = (mags.m1 > mags.m0) ? 1 : 0;
+      this.rawBits.push(bit);
+      this.nextSlotIndex++;
+      this._tryParse();
+      if (this.nextSlotIndex > 400){ // safety valve: something's wrong, restart
+        this._resetState();
+        this.cb.onStatus('searching');
+      }
+    }
+  };
+  Receiver.prototype._tryParse = function(){
+    var bits = this.rawBits;
+
+    if (this.mode === null){
+      var maxSearch = Math.min(bits.length, 56);
+      var i;
+      for (i=0; i<=maxSearch-8; i++){
+        if (arraysEqual(bits.slice(i,i+8), SYNC_NORMAL)){ this.mode='normal'; this.syncEnd=i+8; this.cb.onStatus('framing'); break; }
+      }
+      if (this.mode === null){
+        var syncRobust = tripleArr(SYNC_ROBUST);
+        for (i=0; i<=maxSearch-24; i++){
+          if (arraysEqual(bits.slice(i,i+24), syncRobust)){ this.mode='robust'; this.syncEnd=i+24; this.cb.onStatus('framing'); break; }
         }
+      }
+      if (this.mode === null && bits.length > 90){
+        this._resetState();
+        this.cb.onStatus('searching');
+      }
+      return;
+    }
 
+    var rep = (this.mode === 'robust') ? 3 : 1;
 
-        // Frequency Settings Handlers
-        freqProfileSelect.addEventListener('change', (e) => {
-            const val = e.target.value;
-            if (val === 'custom') {
-                customFreqInputs.classList.remove('hidden');
-                activeProfile = {
-                    f0: parseInt(customFreq0.value) || 18500,
-                    f1: parseInt(customFreq1.value) || 19500,
-                    sync: (parseInt(customFreq0.value) || 18500) - 1000
-                };
-            } else {
-                customFreqInputs.classList.add('hidden');
-                activeProfile = { ...PROFILES[val] };
-            }
-            updatePacketPreview();
+    if (!this.lenKnown){
+      var lenRawLen = 8*rep;
+      if (bits.length >= this.syncEnd + lenRawLen){
+        var lenRawBits = bits.slice(this.syncEnd, this.syncEnd + lenRawLen);
+        var lenLogical = rep===3 ? derepeat(lenRawBits) : lenRawBits;
+        var len = bitsToByteVal(lenLogical);
+        this.msgLen = len;
+        this.lenKnown = true;
+        this.totalRawNeeded = this.syncEnd + lenRawLen + (len*8*rep) + (8*rep);
+      }
+      return;
+    }
+
+    if (bits.length >= this.totalRawNeeded){
+      var lenRawLen2 = 8*rep;
+      var payloadStart = this.syncEnd + lenRawLen2;
+      var payloadRawLen = this.msgLen*8*rep;
+      var payloadRaw = bits.slice(payloadStart, payloadStart + payloadRawLen);
+      var crcRaw = bits.slice(payloadStart + payloadRawLen, payloadStart + payloadRawLen + 8*rep);
+      var payloadLogical = rep===3 ? derepeat(payloadRaw) : payloadRaw;
+      var crcLogical = rep===3 ? derepeat(crcRaw) : crcRaw;
+      var payloadBytes = bitsToBytes(payloadLogical);
+      var recvCrc = bitsToByteVal(crcLogical);
+      var calcCrc = crc8(payloadBytes);
+      var text = bytesToText(payloadBytes);
+      this.cb.onMessage({ text: text, crcOk: recvCrc === calcCrc, robust: this.mode==='robust', bytes: payloadBytes.length });
+      this._resetState();
+      this.cb.onStatus('searching');
+    }
+  };
+
+  /* ================= Microphone error helper ================= */
+  function isProbablyInAppBrowser(){
+    var ua = navigator.userAgent || '';
+    return /FBAN|FBAV|Instagram|Line\/|MicroMessenger|Twitter|TikTok|Snapchat/i.test(ua);
+  }
+  function micErrorMessage(err){
+    if (err && err.code === 'unsupported'){
+      return { title:'Microphone access isn\'t available here.', tips:[
+        'If this link was opened inside another app (WhatsApp, Instagram, etc.), use that app\'s "Open in browser" option instead — in-app browsers often block microphone access entirely.',
+        'Otherwise, try opening this page in Chrome, Safari, or Firefox directly.'
+      ]};
+    }
+    if (err && err.name === 'NotAllowedError'){
+      var tips = ['Tap the site icon (padlock or "ⓘ") next to the address bar and set Microphone to Allow, then reload the page.'];
+      if (isProbablyInAppBrowser()) tips.unshift('This looks like an in-app browser (from a messaging or social app) — these often block microphone access no matter what you tap. Use "Open in browser" from its menu instead.');
+      tips.push('On iPhone: Settings → Safari (or Chrome) → Microphone → Allow. On Android: Settings → Apps → your browser → Permissions → Microphone → Allow.');
+      return { title:'Microphone access was denied.', tips: tips };
+    }
+    if (err && err.name === 'NotFoundError'){
+      return { title:'No microphone was found.', tips:['Check that a microphone is connected and not in use by another app, then try again.'] };
+    }
+    if (err && err.name === 'NotReadableError'){
+      return { title:'The microphone is busy.', tips:['Close any other app or browser tab that might be using it (another call, a voice recorder, etc.) and try again.'] };
+    }
+    return { title:'Couldn\'t start the microphone.', tips:['Reload the page and try again. If it keeps happening, try a different browser.'] };
+  }
+  function renderMicHelp(container, err){
+    var info = micErrorMessage(err);
+    container.hidden = false;
+    container.innerHTML = '<strong>' + info.title + '</strong><ul>' + info.tips.map(function(t){ return '<li>'+t+'</li>'; }).join('') + '</ul>';
+  }
+  function clearMicHelp(container){ container.hidden = true; container.innerHTML=''; }
+
+  /* ================= UI wiring: SEND ================= */
+  var sendText = document.getElementById('sendText');
+  var byteCount = document.getElementById('byteCount');
+  var estTime = document.getElementById('estTime');
+  var sendBtn = document.getElementById('sendBtn');
+  var volSlider = document.getElementById('volSlider');
+  var volVal = document.getElementById('volVal');
+  var robustToggle = document.getElementById('robustToggle');
+  var txStatusDot = document.getElementById('txStatusDot');
+  var txStatusText = document.getElementById('txStatusText');
+  var txBitReadout = document.getElementById('txBitReadout');
+  var txCtx2d = setupCanvas(document.getElementById('txCanvas'));
+
+  volSlider.value = Math.round(settings.volume*100);
+  volVal.textContent = volSlider.value + '%';
+  robustToggle.checked = settings.robust;
+
+  function estimateMs(text, bitMs, robust){
+    var bytes = textToBytes(text).length;
+    var totalBits = (PREAMBLE_LEN + 8 + 8 + bytes*8 + 8) * (robust?3:1);
+    return totalBits*bitMs;
+  }
+  function updateSendMeta(){
+    var bytes = textToBytes(sendText.value).length;
+    byteCount.textContent = bytes + ' / ' + MAX_MSG_BYTES + ' bytes';
+    var ms = estimateMs(sendText.value, settings.bitMs, robustToggle.checked);
+    estTime.textContent = '~' + (ms/1000).toFixed(1) + 's to send';
+    sendBtn.disabled = bytes === 0 || bytes > MAX_MSG_BYTES;
+  }
+  sendText.addEventListener('input', updateSendMeta);
+  volSlider.addEventListener('input', function(){
+    settings.volume = volSlider.value/100;
+    volVal.textContent = volSlider.value + '%';
+    saveSettings();
+  });
+  robustToggle.addEventListener('change', function(){
+    settings.robust = robustToggle.checked;
+    saveSettings();
+    updateSendMeta();
+  });
+
+  function drawTxFrame(bit, active){
+    var rect = txCtx2d.canvas.getBoundingClientRect();
+    var w = rect.width, h = 120;
+    txCtx2d.clearRect(0,0,w,h);
+    drawGrid(txCtx2d, w, h);
+    if (!active){
+      txCtx2d.strokeStyle = 'rgba(255,255,255,0.18)';
+      txCtx2d.lineWidth = 1.5;
+      txCtx2d.beginPath();
+      txCtx2d.moveTo(0, h/2); txCtx2d.lineTo(w, h/2);
+      txCtx2d.stroke();
+      return;
+    }
+    var color = bit ? getComputedStyle(document.documentElement).getPropertyValue('--accent-one').trim()
+                    : getComputedStyle(document.documentElement).getPropertyValue('--accent-zero').trim();
+    var freq = bit ? 5.5 : 3.2;
+    txCtx2d.strokeStyle = color;
+    txCtx2d.lineWidth = 2;
+    txCtx2d.beginPath();
+    for (var x=0; x<=w; x+=2){
+      var y = h/2 + Math.sin((x/w)*Math.PI*2*freq) * (h*0.32);
+      if (x===0) txCtx2d.moveTo(x,y); else txCtx2d.lineTo(x,y);
+    }
+    txCtx2d.stroke();
+  }
+  drawTxFrame(0,false);
+
+  var currentTx = null;
+  var txStoppedManually = false;
+  sendBtn.addEventListener('click', function(){
+    if (currentTx){
+      txStoppedManually = true;
+      currentTx.stop(); currentTx=null;
+      sendBtn.textContent='▲ Transmit'; sendBtn.classList.remove('btn-stop'); sendBtn.classList.add('btn-primary');
+      txStatusDot.className='status-dot'; txStatusText.textContent='Stopped';
+      drawTxFrame(0,false); txBitReadout.textContent='—';
+      return;
+    }
+    txStoppedManually = false;
+    var cfg = { freq0:settings.freq0, freq1:settings.freq1, bitMs:settings.bitMs, volume:settings.volume, robust:robustToggle.checked };
+    var tx = new Transmitter();
+    var handle = tx.send(sendText.value, cfg, function(progress){
+      if (progress.bit === null){
+        drawTxFrame(0,false);
+        txBitReadout.textContent = '—';
+      } else {
+        drawTxFrame(progress.bit, true);
+        txBitReadout.textContent = 'bit ' + (progress.index+1) + '/' + progress.total + ' · ' + (progress.bit ? settings.freq1 : settings.freq0) + ' Hz';
+      }
+    }, function(){
+      currentTx = null;
+      if (txStoppedManually) return; // already reset by the manual-stop path above
+      txStatusDot.className='status-dot';
+      txStatusText.textContent='Done';
+      sendBtn.textContent='▲ Transmit';
+      sendBtn.classList.remove('btn-stop'); sendBtn.classList.add('btn-primary');
+      drawTxFrame(0,false);
+      txBitReadout.textContent='—';
+    }, function(errMsg){
+      txStatusDot.className='status-dot';
+      txStatusText.textContent = 'Error: ' + errMsg;
+      sendBtn.textContent='▲ Transmit';
+      sendBtn.classList.remove('btn-stop'); sendBtn.classList.add('btn-primary');
+      currentTx = null;
+    });
+    if (handle){
+      currentTx = handle;
+      txStatusDot.className='status-dot busy';
+      txStatusText.textContent='Transmitting…';
+      sendBtn.textContent='■ Stop';
+      sendBtn.classList.remove('btn-primary'); sendBtn.classList.add('btn-stop');
+    }
+  });
+
+  /* ================= UI wiring: RECEIVE ================= */
+  var listenBtn = document.getElementById('listenBtn');
+  var rxStatusDot = document.getElementById('rxStatusDot');
+  var rxStatusText = document.getElementById('rxStatusText');
+  var rxModeReadout = document.getElementById('rxModeReadout');
+  var rxMicHelp = document.getElementById('rxMicHelp');
+  var rxCtx2d = setupCanvas(document.getElementById('rxCanvas'));
+  var decodedBox = document.getElementById('decodedBox');
+  var rxLog = document.getElementById('rxLog');
+  var receiver = null;
+  var rxHistory = [];
+
+  function loadHistory(){
+    try {
+      var raw = localStorage.getItem('twotone-history');
+      if (raw) rxHistory = JSON.parse(raw).slice(0,20);
+    } catch(e){ rxHistory = []; }
+  }
+  function saveHistory(){
+    try { localStorage.setItem('twotone-history', JSON.stringify(rxHistory.slice(0,20))); } catch(e){}
+  }
+  function renderLog(){
+    if (rxHistory.length===0){ rxLog.innerHTML = '<div class="log-empty">No messages received yet this session.</div>'; return; }
+    rxLog.innerHTML = rxHistory.map(function(item){
+      return '<div class="log-item"><div class="meta"><span>' + item.time + '</span><span>' + (item.crcOk ? 'checksum ok' : 'checksum failed') + '</span></div>' +
+        '<div>' + escapeHtml(item.text || '(empty)') + '</div></div>';
+    }).join('');
+  }
+  function escapeHtml(s){ var d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+  loadHistory(); renderLog();
+
+  function drawRxMeter(m0, m1, threshold, symbol, state){
+    var rect = rxCtx2d.canvas.getBoundingClientRect();
+    var w = rect.width, h = 120;
+    rxCtx2d.clearRect(0,0,w,h);
+    drawGrid(rxCtx2d, w, h);
+    var maxMag = Math.max(0.02, m0, m1, threshold*1.3);
+    var barW = w*0.32;
+    var gap = w*0.12;
+    var baseX = w/2 - barW - gap/2;
+    function bar(x, mag, color){
+      var bh = Math.min(h-16, (mag/maxMag)*(h-16));
+      rxCtx2d.fillStyle = color;
+      rxCtx2d.fillRect(x, h-8-bh, barW, bh);
+    }
+    var cssZero = getComputedStyle(document.documentElement).getPropertyValue('--accent-zero').trim();
+    var cssOne = getComputedStyle(document.documentElement).getPropertyValue('--accent-one').trim();
+    bar(baseX, m0, cssZero);
+    bar(baseX+barW+gap, m1, cssOne);
+    var ty = h-8-(threshold/maxMag)*(h-16);
+    rxCtx2d.strokeStyle = 'rgba(255,255,255,0.4)';
+    rxCtx2d.setLineDash([4,3]);
+    rxCtx2d.beginPath(); rxCtx2d.moveTo(0,ty); rxCtx2d.lineTo(w,ty); rxCtx2d.stroke();
+    rxCtx2d.setLineDash([]);
+  }
+  drawRxMeter(0,0,0.001,null,'idle');
+
+  function updateRxStatusUI(state){
+    var map = { idle:'Not listening', searching:'Listening for preamble…', locked:'Preamble locked', framing:'Receiving…' };
+    rxStatusText.textContent = map[state] || state;
+    rxStatusDot.className = (state==='idle') ? 'status-dot' : 'status-dot ' + (state==='searching' ? 'live' : 'busy');
+  }
+
+  listenBtn.addEventListener('click', function(){
+    if (receiver && receiver.running){
+      receiver.stop(); receiver=null;
+      listenBtn.textContent = '● Start listening';
+      updateRxStatusUI('idle');
+      rxModeReadout.textContent='';
+      drawRxMeter(0,0,0.001,null,'idle');
+      return;
+    }
+    clearMicHelp(rxMicHelp);
+    listenBtn.disabled = true;
+    var cfg = { freq0:settings.freq0, freq1:settings.freq1, bitMs:settings.bitMs };
+    receiver = new Receiver();
+    updateRxStatusUI('searching');
+    receiver.start(cfg, {
+      onLevel: function(l){
+        drawRxMeter(l.m0, l.m1, l.threshold, l.symbol, l.state);
+      },
+      onStatus: function(state){
+        updateRxStatusUI(state);
+        if (state==='framing' && receiver) rxModeReadout.textContent = receiver.mode ? receiver.mode + ' mode' : '';
+      },
+      onMessage: function(msg){
+        decodedBox.classList.remove('empty');
+        decodedBox.innerHTML = escapeHtml(msg.text || '(empty message)') + '<span class="crc-tag ' + (msg.crcOk?'ok':'bad') + '">' + (msg.crcOk?'checksum ok':'checksum failed') + '</span>';
+        var item = { text: msg.text, crcOk: msg.crcOk, time: new Date().toLocaleTimeString() };
+        rxHistory.unshift(item);
+        rxHistory = rxHistory.slice(0,20);
+        saveHistory(); renderLog();
+        rxModeReadout.textContent='';
+      }
+    }).then(function(){
+      listenBtn.disabled = false;
+      listenBtn.textContent = '■ Stop listening';
+    }).catch(function(err){
+      listenBtn.disabled = false;
+      updateRxStatusUI('idle');
+      renderMicHelp(rxMicHelp, err);
+      rxStatusText.textContent = 'Not listening';
+      receiver = null;
+    });
+  });
+
+  /* ================= UI wiring: CALIBRATE ================= */
+  var freq0Slider = document.getElementById('freq0Slider');
+  var freq1Slider = document.getElementById('freq1Slider');
+  var bitMsSlider = document.getElementById('bitMsSlider');
+  var freq0Val = document.getElementById('freq0Val');
+  var freq1Val = document.getElementById('freq1Val');
+  var bitMsVal = document.getElementById('bitMsVal');
+  var freqWarn = document.getElementById('freqWarn');
+  var play0Btn = document.getElementById('play0Btn');
+  var play1Btn = document.getElementById('play1Btn');
+  var calStatusDot = document.getElementById('calStatusDot');
+  var calStatusText = document.getElementById('calStatusText');
+  var calCtx2d = setupCanvas(document.getElementById('calCanvas'));
+  var selfTestBtn = document.getElementById('selfTestBtn');
+  var selfTestResult = document.getElementById('selfTestResult');
+  var stSent = document.getElementById('stSent');
+  var stDecoded = document.getElementById('stDecoded');
+  var calMicHelp = document.getElementById('calMicHelp');
+
+  freq0Slider.value = settings.freq0; freq1Slider.value = settings.freq1; bitMsSlider.value = settings.bitMs;
+  freq0Val.textContent = settings.freq0 + ' Hz';
+  freq1Val.textContent = settings.freq1 + ' Hz';
+  bitMsVal.textContent = settings.bitMs + ' ms';
+
+  function checkFreqGap(){
+    var gap = Math.abs(settings.freq1 - settings.freq0);
+    if (gap < 600){
+      freqWarn.style.display='block'; freqWarn.classList.add('warn');
+      freqWarn.textContent = 'These tones are close together (' + gap + ' Hz apart) — the receiver may confuse them. 800 Hz or more is safer.';
+    } else {
+      freqWarn.style.display='none';
+    }
+  }
+  freq0Slider.addEventListener('input', function(){ settings.freq0=+freq0Slider.value; freq0Val.textContent=settings.freq0+' Hz'; checkFreqGap(); saveSettings(); updateSendMeta(); });
+  freq1Slider.addEventListener('input', function(){ settings.freq1=+freq1Slider.value; freq1Val.textContent=settings.freq1+' Hz'; checkFreqGap(); saveSettings(); updateSendMeta(); });
+  bitMsSlider.addEventListener('input', function(){ settings.bitMs=+bitMsSlider.value; bitMsVal.textContent=settings.bitMs+' ms'; saveSettings(); updateSendMeta(); });
+  checkFreqGap();
+
+  function drawCalIdle(){
+    var rect = calCtx2d.canvas.getBoundingClientRect();
+    var w=rect.width,h=120;
+    calCtx2d.clearRect(0,0,w,h);
+    drawGrid(calCtx2d,w,h);
+  }
+  drawCalIdle();
+
+  play0Btn.addEventListener('click', function(){
+    calStatusDot.className='status-dot busy'; calStatusText.textContent='Playing ' + settings.freq0 + ' Hz (bit 0)';
+    playTone(settings.freq0, 900);
+    setTimeout(function(){ calStatusDot.className='status-dot'; calStatusText.textContent='Idle'; }, 950);
+  });
+  play1Btn.addEventListener('click', function(){
+    calStatusDot.className='status-dot busy'; calStatusText.textContent='Playing ' + settings.freq1 + ' Hz (bit 1)';
+    playTone(settings.freq1, 900);
+    setTimeout(function(){ calStatusDot.className='status-dot'; calStatusText.textContent='Idle'; }, 950);
+  });
+
+  selfTestBtn.addEventListener('click', function(){
+    selfTestBtn.disabled = true;
+    calStatusDot.className='status-dot busy';
+    calStatusText.textContent = 'Requesting microphone…';
+    selfTestResult.style.display='none';
+    clearMicHelp(calMicHelp);
+
+    var testMsg = (sendText.value && sendText.value.trim()) ? sendText.value.trim() : 'Twotone self-test';
+    var cfg = { freq0:settings.freq0, freq1:settings.freq1, bitMs:settings.bitMs };
+    var rx = new Receiver();
+    var gotMessage = false;
+    var timeoutId = null;
+
+    rx.start(cfg, {
+      onLevel: function(l){ /* no-op visual during self test to keep it simple */ },
+      onStatus: function(state){
+        if (state==='locked') calStatusText.textContent='Preamble locked…';
+        if (state==='framing') calStatusText.textContent='Decoding…';
+      },
+      onMessage: function(msg){
+        gotMessage = true;
+        clearTimeout(timeoutId);
+        stSent.textContent = testMsg;
+        stDecoded.textContent = (msg.text || '(empty)') + (msg.crcOk ? '  ✓' : '  ✗ checksum failed');
+        selfTestResult.style.display='grid';
+        calStatusDot.className='status-dot';
+        calStatusText.textContent = msg.crcOk ? 'Self-test passed' : 'Self-test: checksum failed — try again with volume up';
+        rx.stop();
+        selfTestBtn.disabled = false;
+      }
+    }).then(function(){
+      calStatusText.textContent = 'Listening — transmitting in a moment…';
+      setTimeout(function(){
+        var tx = new Transmitter();
+        tx.send(testMsg, { freq0:settings.freq0, freq1:settings.freq1, bitMs:settings.bitMs, volume:settings.volume, robust:robustToggle.checked }, function(){}, function(){}, function(errMsg){
+          calStatusText.textContent = 'Error: ' + errMsg;
+          selfTestBtn.disabled = false;
         });
-
-        [customFreq0, customFreq1].forEach(input => {
-            input.addEventListener('input', () => {
-                activeProfile.f0 = parseInt(customFreq0.value) || 18500;
-                activeProfile.f1 = parseInt(customFreq1.value) || 19500;
-                activeProfile.sync = activeProfile.f0 - 1000;
-                updatePacketPreview();
-            });
-        });
-
-        baudRateSelect.addEventListener('change', (e) => {
-            symbolDurationMs = parseInt(e.target.value);
-        });
-
-
-        // Build binary packet structure: [Preamble Sync] + [Length Byte] + [Data Bytes] + [CRC8 Byte]
-        function buildPacket(text) {
-            const encoder = new TextEncoder();
-            const payloadBytes = encoder.encode(text);
-            const len = payloadBytes.length;
-
-            // Packet bytes = [len, ...payloadBytes]
-            const rawBuffer = new Uint8Array(1 + len);
-            rawBuffer[0] = len;
-            rawBuffer.set(payloadBytes, 1);
-
-            // Compute CRC8 over [len + payload]
-            const crc = calculateCRC8(rawBuffer);
-
-            // Complete packet array
-            const fullPacket = new Uint8Array(1 + len + 1);
-            fullPacket.set(rawBuffer, 0);
-            fullPacket[1 + len] = crc;
-
-            return {
-                bytes: fullPacket,
-                payloadLen: len,
-                crc: crc
-            };
+      }, 500);
+      timeoutId = setTimeout(function(){
+        if (!gotMessage){
+          rx.stop();
+          calStatusDot.className='status-dot';
+          calStatusText.textContent = 'No signal detected — check volume and try again';
+          selfTestBtn.disabled = false;
         }
-
-        // Convert packet bytes to full bit stream (with preamble sync headers)
-        function packetToBits(packet) {
-            let bitString = "";
-            
-            // Sync Header: 8 bits of alternating 1/0 + preamble sync tone
-            for (let i = 0; i < packet.bytes.length; i++) {
-                const byte = packet.bytes[i];
-                bitString += byte.toString(2).padStart(8, '0');
-            }
-            return bitString;
-        }
-
-        // Update TX UI whenever user types
-        txInput.addEventListener('input', () => {
-            charCounter.textContent = `${txInput.value.length} / 40 chars`;
-            updatePacketPreview();
-        });
-
-        function updatePacketPreview() {
-            const text = txInput.value;
-            if (!text) {
-                packetHexDisplay.textContent = "-- -- -- --";
-                binaryStreamDisplay.textContent = "Waiting for input...";
-                return;
-            }
-
-            const packet = buildPacket(text);
-            const hexArr = Array.from(packet.bytes).map(b => b.toString(16).padStart(2, '0').toUpperCase());
-            packetHexDisplay.textContent = hexArr.join(' ');
-
-            const bits = packetToBits(packet);
-            binaryStreamDisplay.textContent = bits;
-        }
-
-
-        // Play smooth tone with cosine ramping to eliminate clicking noise
-        function playTone(ctx, freq, durationMs) {
-            return new Promise((resolve) => {
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(freq, ctx.currentTime);
-
-                const durSec = durationMs / 1000;
-                const attack = Math.min(0.015, durSec * 0.2); // 15ms soft fade-in
-                const release = Math.min(0.015, durSec * 0.2); // 15ms soft fade-out
-
-                // Envelope
-                gain.gain.setValueAtTime(0, ctx.currentTime);
-                gain.gain.linearRampToValueAtTime(0.8, ctx.currentTime + attack);
-                gain.gain.setValueAtTime(0.8, ctx.currentTime + durSec - release);
-                gain.gain.linearRampToValueAtTime(0, ctx.currentTime + durSec);
-
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-
-                osc.start();
-
-                // Draw tx oscilloscope wave
-                drawTxWave(freq);
-
-                setTimeout(() => {
-                    osc.stop();
-                    osc.disconnect();
-                    gain.disconnect();
-                    resolve();
-                }, durationMs);
-            });
-        }
-
-        // Visualizer for TX wave
-        function drawTxWave(freq) {
-            txFrequencyIndicator.textContent = `${(freq / 1000).toFixed(1)} kHz`;
-            txCtx.fillStyle = '#020617';
-            txCtx.fillRect(0, 0, txCanvas.width, txCanvas.height);
-
-            txCtx.beginPath();
-            txCtx.strokeStyle = '#3b82f6';
-            txCtx.lineWidth = 2;
-
-            const width = txCanvas.width;
-            const height = txCanvas.height;
-            const cycles = freq / 1000; // visual representation cycles
-
-            for (let x = 0; x < width; x++) {
-                const y = height / 2 + Math.sin((x / width) * cycles * Math.PI * 2) * (height / 2.5);
-                if (x === 0) txCtx.moveTo(x, y);
-                else txCtx.lineTo(x, y);
-            }
-            txCtx.stroke();
-        }
-
-        // Speaker test generator
-        speakerTestBtn.addEventListener('click', async () => {
-            const ctx = getAudioContext();
-            setStatus("Playing speaker frequency diagnostic test...");
-            speakerTestBtn.disabled = true;
-
-            // Play sequence: 1kHz -> Sync Freq -> Bit 0 Freq -> Bit 1 Freq
-            await playTone(ctx, 1000, 300);
-            await playTone(ctx, activeProfile.sync, 400);
-            await playTone(ctx, activeProfile.f0, 500);
-            await playTone(ctx, activeProfile.f1, 500);
-
-            setStatus("Speaker diagnostic complete. Did you hear the low start chirp?");
-            speakerTestBtn.disabled = false;
-        });
-
-
-        // Main Broadcast Function
-        transmitBtn.addEventListener('click', async () => {
-            const text = txInput.value.trim();
-            if (!text) {
-                setStatus("Please enter a message before broadcasting.", true);
-                return;
-            }
-
-            const ctx = getAudioContext();
-            isTransmitting = true;
-            transmitBtn.disabled = true;
-            txInput.disabled = true;
-
-            const packet = buildPacket(text);
-            const bitString = packetToBits(packet);
-            const totalBits = bitString.length;
-
-            setStatus(`Broadcasting payload: ${totalBits} bits via Acoustic FSK...`);
-
-            // Step 1: Send High-Power Preamble / Sync Chirp
-            // Sync tone played for 2 symbol lengths to wake up receiver & lock clock
-            await playTone(ctx, activeProfile.sync, symbolDurationMs * 2);
-            await new Promise(r => setTimeout(r, 40)); // tiny gap
-
-            // Step 2: Loop through binary stream
-            for (let i = 0; i < totalBits; i++) {
-                if (!isTransmitting) break;
-
-                const bit = bitString[i];
-                const freq = (bit === '1') ? activeProfile.f1 : activeProfile.f0;
-
-                // Update UI progress
-                const pct = ((i + 1) / totalBits) * 100;
-                txProgressBar.style.width = `${pct}%`;
-
-                await playTone(ctx, freq, symbolDurationMs);
-            }
-
-            // Clear TX display
-            txCtx.fillStyle = '#020617';
-            txCtx.fillRect(0, 0, txCanvas.width, txCanvas.height);
-            txFrequencyIndicator.textContent = '0.0 kHz';
-
-            setStatus("Transmission complete!");
-            isTransmitting = false;
-            transmitBtn.disabled = false;
-            txInput.disabled = false;
-            txProgressBar.style.width = '0%';
-        });
-
-
-        // Receiver Toggle
-        rxToggleBtn.addEventListener('click', () => {
-            if (isListening) {
-                stopListening();
-            } else {
-                startListening();
-            }
-        });
-
-        async function startListening() {
-            const ctx = getAudioContext();
-
-            try {
-                // Request mic stream with high sample rate and direct raw input
-                rxMicStream = await navigator.mediaDevices.getUserMedia({
-                    audio: {
-                        echoCancellation: false,
-                        noiseSuppression: false,
-                        autoGainControl: false
-                    }
-                });
-
-                rxSourceNode = ctx.createMediaStreamSource(rxMicStream);
-                rxAnalyser = ctx.createAnalyser();
-
-                // 8192 FFT Size provides ~5.85 Hz resolution per bin at 48kHz
-                rxAnalyser.fftSize = 8192;
-                rxAnalyser.smoothingTimeConstant = 0.2; // Fast response for symbols
-
-                rxSourceNode.connect(rxAnalyser);
-
-                isListening = true;
-                rxToggleBtn.classList.replace('bg-emerald-600', 'bg-rose-600');
-                rxToggleBtn.classList.replace('hover:bg-emerald-500', 'hover:bg-rose-500');
-                rxToggleBtn.innerHTML = '<span>🛑 STOP LISTENING</span>';
-                rxLed.className = 'w-3 h-3 rounded-full bg-emerald-400 animate-ping';
-
-                rxBitBufferString = "";
-                rxBitBuffer.textContent = "Listening for audio sync...";
-                rxOutputText.textContent = "Listening for incoming sound signal...";
-                crcBadge.classList.add('hidden');
-                rxState = "IDLE";
-
-                // Setup canvas dimensions
-                setupCanvasDimensions();
-
-                setStatus("Receiver active. Listening for acoustic sync preamble...");
-                processAudioFrame();
-
-            } catch (err) {
-                console.error("Microphone Access Error:", err);
-                setStatus("Microphone permission denied or device error.", true);
-            }
-        }
-
-        function stopListening() {
-            isListening = false;
-            if (rxMicStream) {
-                rxMicStream.getTracks().forEach(t => t.stop());
-            }
-            if (rxSourceNode) rxSourceNode.disconnect();
-            if (rxAnalyser) rxAnalyser.disconnect();
-
-            if (rxAnimFrame) cancelAnimationFrame(rxAnimFrame);
-
-            rxToggleBtn.classList.replace('bg-rose-600', 'bg-emerald-600');
-            rxToggleBtn.classList.replace('hover:bg-rose-500', 'hover:bg-emerald-500');
-            rxToggleBtn.innerHTML = '<span>🎙️ START LISTENING</span>';
-            rxLed.className = 'w-3 h-3 rounded-full bg-slate-600';
-            snrBadge.textContent = "SNR: -- dB";
-            detectedFreqVal.textContent = "-- Hz";
-
-            setStatus("Receiver stopped.");
-        }
-
-        function setupCanvasDimensions() {
-            spectrogramCanvas.width = spectrogramCanvas.parentElement.clientWidth;
-            spectrogramCanvas.height = spectrogramCanvas.parentElement.clientHeight;
-            spectrumCanvas.width = spectrumCanvas.parentElement.clientWidth;
-            spectrumCanvas.height = spectrumCanvas.parentElement.clientHeight;
-            txCanvas.width = txCanvas.parentElement.clientWidth;
-            txCanvas.height = txCanvas.parentElement.clientHeight;
-        }
-
-        window.addEventListener('resize', setupCanvasDimensions);
-
-        // Noise floor auto-calibration
-        calibrateNoiseBtn.addEventListener('click', () => {
-            if (!isListening || !rxAnalyser) {
-                setStatus("Start listening first to calibrate noise floor.", true);
-                return;
-            }
-            const buffer = new Float32Array(rxAnalyser.frequencyBinCount);
-            rxAnalyser.getFloatFrequencyData(buffer);
-            let sum = 0;
-            for (let i = 0; i < buffer.length; i++) sum += buffer[i];
-            noiseFloorDb = sum / buffer.length;
-            setStatus(`Noise floor calibrated at ${noiseFloorDb.toFixed(1)} dB`);
-        });
-
-
-        // Main Real-Time Audio Processing Loop
-        function processAudioFrame() {
-            if (!isListening) return;
-
-            const bufferLength = rxAnalyser.frequencyBinCount;
-            const fftData = new Float32Array(bufferLength);
-            rxAnalyser.getFloatFrequencyData(fftData);
-
-            const sampleRate = audioCtx.sampleRate;
-
-            // Render Spectrogram Waterfall and Spectrum Graph
-            renderSpectrogram(fftData, bufferLength, sampleRate);
-            renderSpectrumGraph(fftData, bufferLength, sampleRate);
-
-            // Compute Band Energies around F0, F1, and SYNC
-            const syncEnergy = getFrequencyEnergy(fftData, activeProfile.sync, sampleRate, bufferLength);
-            const f0Energy = getFrequencyEnergy(fftData, activeProfile.f0, sampleRate, bufferLength);
-            const f1Energy = getFrequencyEnergy(fftData, activeProfile.f1, sampleRate, bufferLength);
-
-            const maxEnergy = Math.max(syncEnergy, f0Energy, f1Energy);
-            const ambientAvg = (syncEnergy + f0Energy + f1Energy) / 3;
-            const snr = maxEnergy - ambientAvg;
-
-            snrBadge.textContent = `SNR: ${snr.toFixed(1)} dB`;
-
-            // Detect peak frequency
-            let currentPeakFreq = 0;
-            if (maxEnergy > noiseFloorDb + 15) { // Minimum threshold
-                if (maxEnergy === syncEnergy) currentPeakFreq = activeProfile.sync;
-                else if (maxEnergy === f0Energy) currentPeakFreq = activeProfile.f0;
-                else if (maxEnergy === f1Energy) currentPeakFreq = activeProfile.f1;
-            }
-
-            if (currentPeakFreq > 0) {
-                detectedFreqVal.textContent = `${currentPeakFreq} Hz`;
-            } else {
-                detectedFreqVal.textContent = `-- Hz`;
-            }
-
-            // FSK State Machine & Symbol Decoder
-            const now = performance.now();
-
-            if (rxState === "IDLE") {
-                // Look for Sync Preamble Tone
-                if (currentPeakFreq === activeProfile.sync && snr > 12) {
-                    preambleDetectCount++;
-                    if (preambleDetectCount >= 3) { // Require 3 consecutive hits
-                        rxState = "SYNCED";
-                        rxBitBufferString = "";
-                        preambleDetectCount = 0;
-                        lastSymbolTime = now + (symbolDurationMs * 0.5); // align sampling to center of bit
-                        setStatus("SYNC DETECTED! Lock acquired. Receiving payload...", false);
-                        rxBitBuffer.textContent = "Sync locked... receiving bits...";
-                    }
-                } else {
-                    preambleDetectCount = 0;
-                }
-            } 
-            else if (rxState === "SYNCED" || rxState === "RECEIVING") {
-                // Symbol Clock Trigger
-                if (now - lastSymbolTime >= symbolDurationMs) {
-                    lastSymbolTime = now;
-
-                    let detectedBit = null;
-                    if (f1Energy > f0Energy && f1Energy > activeProfile.sync) {
-                        detectedBit = "1";
-                    } else if (f0Energy > f1Energy && f0Energy > activeProfile.sync) {
-                        detectedBit = "0";
-                    }
-
-                    if (detectedBit !== null) {
-                        rxState = "RECEIVING";
-                        rxBitBufferString += detectedBit;
-                        rxBitBuffer.textContent = rxBitBufferString;
-
-                        // On-the-fly attempt byte decoding
-                        parseRxBuffer();
-                    } else {
-                        // Timeout / Silence after receiving
-                        if (rxBitBufferString.length >= 16 && (now - lastSymbolTime > symbolDurationMs * 3)) {
-                            finalizePacketDecoding();
-                        }
-                    }
-                }
-            }
-
-            rxAnimFrame = requestAnimationFrame(processAudioFrame);
-        }
-
-        // Energy Integration in a narrow frequency band (+- 60 Hz) around target frequency
-        function getFrequencyEnergy(fftData, targetFreq, sampleRate, bufferLength) {
-            const binSize = (sampleRate / 2) / bufferLength;
-            const targetBin = Math.round(targetFreq / binSize);
-            const radius = Math.max(1, Math.round(60 / binSize)); // 60 Hz window
-
-            let sum = 0;
-            let count = 0;
-            for (let i = targetBin - radius; i <= targetBin + radius; i++) {
-                if (i >= 0 && i < bufferLength) {
-                    sum += fftData[i];
-                    count++;
-                }
-            }
-            return sum / count;
-        }
-
-        // Parse accumulated bits into bytes and text
-        function parseRxBuffer() {
-            if (rxBitBufferString.length < 16) return; // Need at least Length byte + 1 Payload byte
-
-            // Convert bit string to bytes
-            const bytes = [];
-            for (let i = 0; i + 8 <= rxBitBufferString.length; i += 8) {
-                const byteStr = rxBitBufferString.substring(i, i + 8);
-                bytes.push(parseInt(byteStr, 2));
-            }
-
-            const payloadLen = bytes[0];
-            expectedBytesCount = 1 + payloadLen + 1; // [Len] + Payload + [CRC8]
-
-            if (bytes.length >= expectedBytesCount) {
-                finalizePacketDecoding();
-            }
-        }
-
-        function finalizePacketDecoding() {
-            const bytes = [];
-            for (let i = 0; i + 8 <= rxBitBufferString.length; i += 8) {
-                const byteStr = rxBitBufferString.substring(i, i + 8);
-                bytes.push(parseInt(byteStr, 2));
-            }
-
-            if (bytes.length < 3) {
-                rxOutputText.textContent = "Error: Incomplete packet received.";
-                rxState = "IDLE";
-                return;
-            }
-
-            const len = bytes[0];
-            const payloadBytes = new Uint8Array(bytes.slice(1, 1 + len));
-            const rxCrc = bytes[1 + len];
-
-            // Verify CRC8
-            const verifyBuffer = new Uint8Array(1 + len);
-            verifyBuffer[0] = len;
-            verifyBuffer.set(payloadBytes, 1);
-
-            const calculatedCrc = calculateCRC8(verifyBuffer);
-
-            const decoder = new TextDecoder();
-            const decodedString = decoder.decode(payloadBytes);
-
-            rxOutputText.textContent = decodedString || "[Empty Payload]";
-
-            if (rxCrc === calculatedCrc) {
-                crcBadge.classList.remove('hidden');
-                crcBadge.textContent = "CRC-8 PASSED ✅";
-                crcBadge.className = "text-[10px] px-2 py-0.5 rounded font-bold bg-emerald-950 text-emerald-400 border border-emerald-800";
-                setStatus(`Packet received successfully! Message: "${decodedString}"`);
-            } else {
-                crcBadge.classList.remove('hidden');
-                crcBadge.textContent = "CRC-8 ERROR ❌";
-                crcBadge.className = "text-[10px] px-2 py-0.5 rounded font-bold bg-rose-950 text-rose-400 border border-rose-800";
-                setStatus("Packet received with CRC checksum error. Noise may have corrupted bits.", true);
-            }
-
-            rxState = "IDLE";
-        }
-
-
-        // Render Waterfall Spectrogram
-        function renderSpectrogram(fftData, bufferLength, sampleRate) {
-            const ctx = spectrogramCtx;
-            const width = spectrogramCanvas.width;
-            const height = spectrogramCanvas.height;
-
-            // Shift existing image down 2 pixels
-            const imgData = ctx.getImageData(0, 0, width, height - 2);
-            ctx.putImageData(imgData, 0, 2);
-
-            // Draw new top row
-            const minFreq = 15000;
-            const maxFreq = 21000;
-            const binSize = (sampleRate / 2) / bufferLength;
-
-            const minBin = Math.floor(minFreq / binSize);
-            const maxBin = Math.ceil(maxFreq / binSize);
-            const binRange = maxBin - minBin;
-
-            const rowImg = ctx.createImageData(width, 2);
-
-            for (let x = 0; x < width; x++) {
-                const binIdx = minBin + Math.floor((x / width) * binRange);
-                const db = fftData[binIdx] || -100;
-
-                // Color Map: Normalized -90dB to -30dB -> Heatmap
-                const norm = Math.max(0, Math.min(1, (db + 90) / 60));
-                const color = getHeatmapColor(norm);
-
-                for (let y = 0; y < 2; y++) {
-                    const idx = (y * width + x) * 4;
-                    rowImg.data[idx] = color.r;
-                    rowImg.data[idx + 1] = color.g;
-                    rowImg.data[idx + 2] = color.b;
-                    rowImg.data[idx + 3] = 255;
-                }
-            }
-
-            ctx.putImageData(rowImg, 0, 0);
-        }
-
-        // Heatmap Color Gradient (Black -> Indigo -> Cyan -> Green -> Yellow -> Red)
-        function getHeatmapColor(val) {
-            if (val < 0.2) {
-                return { r: 0, g: Math.floor(val * 5 * 100), b: Math.floor(val * 5 * 255) };
-            } else if (val < 0.5) {
-                return { r: 0, g: Math.floor((val - 0.2) * 3.33 * 255), b: Math.floor(255 - (val - 0.2) * 3.33 * 100) };
-            } else if (val < 0.8) {
-                return { r: Math.floor((val - 0.5) * 3.33 * 255), g: 255, b: 0 };
-            } else {
-                return { r: 255, g: Math.floor(255 - (val - 0.8) * 5 * 255), b: 0 };
-            }
-        }
-
-
-        // Render Spectrum Line Graph
-        function renderSpectrumGraph(fftData, bufferLength, sampleRate) {
-            const ctx = spectrumCtx;
-            const width = spectrumCanvas.width;
-            const height = spectrumCanvas.height;
-
-            ctx.fillStyle = '#020617';
-            ctx.fillRect(0, 0, width, height);
-
-            const minFreq = 15000;
-            const maxFreq = 21000;
-            const binSize = (sampleRate / 2) / bufferLength;
-
-            const minBin = Math.floor(minFreq / binSize);
-            const maxBin = Math.ceil(maxFreq / binSize);
-            const binRange = maxBin - minBin;
-
-            ctx.beginPath();
-            ctx.strokeStyle = '#10b981';
-            ctx.lineWidth = 1.5;
-
-            for (let x = 0; x < width; x++) {
-                const binIdx = minBin + Math.floor((x / width) * binRange);
-                const db = fftData[binIdx] || -100;
-                const norm = Math.max(0, Math.min(1, (db + 100) / 70));
-                const y = height - (norm * height);
-
-                if (x === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
-            }
-            ctx.stroke();
-
-            // Draw Target Frequency Vertical Guide Markers
-            [activeProfile.sync, activeProfile.f0, activeProfile.f1].forEach((f, idx) => {
-                const x = ((f - minFreq) / (maxFreq - minFreq)) * width;
-                if (x >= 0 && x <= width) {
-                    ctx.strokeStyle = idx === 0 ? '#a855f7' : (idx === 1 ? '#06b6d4' : '#10b981');
-                    ctx.setLineDash([2, 2]);
-                    ctx.beginPath();
-                    ctx.moveTo(x, 0);
-                    ctx.lineTo(x, height);
-                    ctx.stroke();
-                    ctx.setLineDash([]);
-                }
-            });
-        }
-
-        // Initialize Canvas Sizes on Load
-        window.addEventListener('load', () => {
-            setupCanvasDimensions();
-            updatePacketPreview();
-        });
-
-    </script>
+      }, estimateMs(testMsg, settings.bitMs, robustToggle.checked) + 3500);
+    }).catch(function(err){
+      calStatusDot.className='status-dot';
+      calStatusText.textContent = 'Could not start microphone';
+      renderMicHelp(calMicHelp, err);
+      selfTestBtn.disabled = false;
+    });
+  });
+
+  updateSendMeta();
+})();
+</script>
 </body>
 </html>
